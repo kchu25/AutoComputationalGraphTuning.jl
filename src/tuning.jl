@@ -96,7 +96,6 @@ function tune_hyperparameters(
         setup = setup_model_and_training(
             raw_data, 
             create_model,
-            trial_number, 
             batch_size;
             normalize_Y=normalize_Y,
             normalization_method=normalization_method,

@@ -1,3 +1,5 @@
+
+
 function setup_model_and_training(
         data, 
         create_model::Function,
@@ -12,10 +14,10 @@ function setup_model_and_training(
     # 1. Get input and output dimensions
     Xdim, Ydim = nothing, nothing
     try
-        Xdim, Ydim = get_X_dim(data), get_Y_dim(data)
+        Xdim, Ydim = data.X_dim, data.Y_dim
     catch
-        println("⚠️  $(typeof(data)) is missing required methods:")
-        println("    get_X_dim and/or get_Y_dim.")
+        println("⚠️  $(typeof(data)) is missing required fields:")
+        println("    data.X_dim and data.Y_dim.")
         return nothing
     end
 

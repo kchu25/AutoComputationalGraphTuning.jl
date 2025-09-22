@@ -32,7 +32,7 @@ println(splits.train.data[1])       # Access works normally
 ```
 """
 function train_val_test_split(
-    raw_data; 
+    data; 
     train_ratio::Float64=0.8, 
     val_ratio::Float64=0.1, 
     test_ratio::Union{Float64,Nothing}=nothing, 
@@ -48,17 +48,9 @@ function train_val_test_split(
         end
     end
 
-    # Get number of samples for raw_data and labels
-    X, Y = nothing, nothing
-    try
-        X = get_X(raw_data)
-        Y = get_Y(raw_data)
-    catch
-        throw(ArgumentError("raw_data must have methods get_X and get_Y"))
-    end
-
-    n_data_samples = size(X, ndims(X))
-    n_label_samples = size(Y, ndims(Y))
+    # Extract data and labels
+    n_data_samples = size(data.X, ndims(data.X))
+    n_label_samples = size(data.Y, ndims(data.Y))
 
     if n_data_samples != n_label_samples
         throw(ArgumentError("Data and labels must have same number of samples: $n_data_samples vs $n_label_samples"))
@@ -71,19 +63,19 @@ function train_val_test_split(
         rng=rng)
 
     # Split data and labels (handle both vector and matrix labels)
-    if ndims(Y) == 1
+    if ndims(data.Y) == 1
         # Vector labels
         return (
-            train = (X = view(X, indices.train), Y = view(Y, indices.train)),
-            val   = (X = view(X, indices.val),   Y = view(Y, indices.val)),
-            test  = (X = view(X, indices.test),  Y = view(Y, indices.test))
+            train = (X = view(data.X, indices.train), Y = view(data.Y, indices.train)),
+            val   = (X = view(data.X, indices.val),   Y = view(data.Y, indices.val)),
+            test  = (X = view(data.X, indices.test),  Y = view(data.Y, indices.test))
         )
     else
         # Matrix labels (preserve all dimensions except first)
         return (
-            train = (X = view(X, indices.train), Y = view(Y, :, indices.train)),
-            val   = (X = view(X, indices.val),   Y = view(Y, :, indices.val)),
-            test  = (X = view(X, indices.test),  Y = view(Y, :, indices.test))
+            train = (X = view(data.X, indices.train), Y = view(data.Y, :, indices.train)),
+            val   = (X = view(data.X, indices.val),   Y = view(data.Y, :, indices.val)),
+            test  = (X = view(data.X, indices.test),  Y = view(data.Y, :, indices.test))
         )
     end
 end
