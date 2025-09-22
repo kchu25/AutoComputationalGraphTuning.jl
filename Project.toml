@@ -1,0 +1,13 @@
+name = "AutoComputationalGraphTuning"
+uuid = "9895cdd9-2e9e-4374-a2b7-90eb9a5a3bcd"
+authors = ["Shane Kuei-Hsien Chu (skchu@wustl.edu)"]
+version = "1.0.0-DEV"
+
+[compat]
+julia = "1.11.6"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
