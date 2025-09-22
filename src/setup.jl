@@ -8,6 +8,7 @@ function setup_model_and_training(
         normalization_method=:zscore,
         normalization_mode=:columnwise,
         rng=Random.GLOBAL_RNG,
+        use_gpu=false
         )
     """Common setup for model creation and data preparation"""
     
@@ -23,7 +24,7 @@ function setup_model_and_training(
 
     # 2. Generate model
     m = nothing
-    m = create_model(Xdim, Ydim, batch_size; rng=rng)
+    m = create_model(Xdim, Ydim, batch_size; rng=rng, use_gpu=use_gpu)
     if isnothing(m)
         println("⚠️  Failed to create model with given hyperparameters.")
         return nothing
