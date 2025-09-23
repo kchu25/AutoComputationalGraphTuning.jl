@@ -18,5 +18,5 @@ function masked_mse(predictions, targets, mask)
     valid_targets = @view targets[mask]
     
     # Return mean squared error only for valid entries
-    return Flux.mse(valid_predictions, valid_targets; agg = mean)
+    return Flux.mse(valid_predictions, valid_targets; agg=StatsBase.mean)
 end

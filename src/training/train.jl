@@ -1,8 +1,7 @@
-
 """Train single batch and return loss and statistics"""
 function train_batch!(model, opt_state, seq, labels; loss_fcn=masked_mse)
     seq, labels = seq |> cu, labels |> cu
-    nan_mask = .!isnan.(labels)
+    nan_mask = .!isnan.(labels) # Mask for valid entries
 
     # Compute loss and gradients
     loss, gs = Flux.withgradient(model) do x
@@ -28,14 +27,14 @@ function train_epoch!(model, opt_state, dataloader, epoch, print_every; loss_fcn
         
         # Print progress
         if batch_idx % print_every == 0
-            avg_loss = mean(epoch_losses)
+            avg_loss = StatsBase.mean(epoch_losses)
             println("Epoch $epoch, Batch $batch_idx: Loss = $(round(loss, digits=6)), " * 
                    "Avg Loss = $(round(avg_loss, digits=6)), " *
                    "Valid entries: $valid_count/$(length(.!isnan.(labels)))")
         end
     end
     
-    return mean(epoch_losses), mean(epoch_valid_counts)
+    return StatsBase.mean(epoch_losses), StatsBase.mean(epoch_valid_counts)
 end
 
 # ==============================================================================
@@ -60,6 +59,7 @@ function train_model(model, opt_state, train_dl, val_dl, output_dim;
                      test_set=false
                      )
     
+
     # Early stopping variables
     best_val_loss = Inf
     best_r2 = -Inf
@@ -76,13 +76,14 @@ function train_model(model, opt_state, train_dl, val_dl, output_dim;
     println("Batch size: $(train_dl.batchsize), Total batches per epoch: $(length(train_dl))")
     println("-" ^ 50)
     
+    
     for epoch in 1:max_epochs
         # Train one epoch
         epoch_avg_loss, epoch_avg_valid = train_epoch!(model, opt_state, train_dl, epoch, print_every)
         
         # Evaluate validation metrics
         val_loss, individual_r2, aggregated_r2 = 
-            CNN.evaluate_validation_metrics(model, val_dl, output_dim)
+            evaluate_validation_metrics(model, val_dl, output_dim)
         
         # Store history
         push!(train_losses, epoch_avg_loss)

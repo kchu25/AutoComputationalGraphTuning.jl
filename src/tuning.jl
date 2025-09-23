@@ -75,6 +75,7 @@ function tune_hyperparameters(
     normalization_mode=:rowwise,
     print_every=100,
     save_folder=nothing,
+    use_cuda=true
     )
 
     results_df = DataFrame(
@@ -87,12 +88,13 @@ function tune_hyperparameters(
     save_file = isnothing(save_folder) ? nothing : _setup_save_file(save_folder)
 
     for trial_number in trial_number_start:(trial_number_start+n_trials-1)
+        
+        println("🔍 Hyperparameter trial $trial_number (seed: $trial_number)")
 
         # set the seed number as the trial number
         rng_global = set_reproducible_seeds!(trial_number)
         # generate hyperparameters and batch size
         batch_size = randomize_batchsize ? rand(rng_global, BATCH_SIZE_RANGE) : DEFAULT_BATCH_SIZE
-        println("🔍 Hyperparameter trial $trial_number (seed: $trial_number)")
 
         setup = setup_model_and_training(
             raw_data, 
@@ -101,7 +103,8 @@ function tune_hyperparameters(
             normalize_Y=normalize_Y,
             normalization_method=normalization_method,
             normalization_mode=normalization_mode, 
-            rng = rng_global
+            rng = rng_global,
+            use_cuda=use_cuda
             )
 
         if isnothing(setup)
@@ -125,7 +128,7 @@ function tune_hyperparameters(
                                print_every=print_every
                                )
         current_r2, val_loss = stats[:best_r2], stats[:best_val_loss]
-        push!(results_df, (trial, current_r2, val_loss))
+        push!(results_df, (trial_number, current_r2, val_loss))
         _maybe_save_results!(results_df, save_file, current_r2, best_r2_so_far)
         best_r2_so_far = max(best_r2_so_far, current_r2)
     end
