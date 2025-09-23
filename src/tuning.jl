@@ -43,6 +43,15 @@ function _print_and_save_final_results!(results_df, save_file)
         println("\n⚠️  No successful trials - all hyperparameters were invalid!")
     end
 end
+
+function save_kwargs_to_file(kwargs::NamedTuple, filename::AbstractString)
+    open(filename, "w") do io
+        for (k, v) in pairs(kwargs)
+            println(io, "$k = $v")
+        end
+    end
+end
+
 """
     tune_hyperparameters(raw_data::SEQ2EXP_Dataset; seq_type=:Nucleotide, randomize_batchsize=false, max_epochs=50, patience=5, trial_number_start=1, n_trials=10, suppress_warnings=false, save_folder=nothing)
 
@@ -86,6 +95,21 @@ function tune_hyperparameters(
 
     best_r2_so_far = -Inf
     save_file = isnothing(save_folder) ? nothing : _setup_save_file(save_folder)
+
+    if !isnothing(save_folder)
+        save_kwargs_to_file((
+            randomize_batchsize=randomize_batchsize,
+            max_epochs=max_epochs,
+            patience=patience,
+            trial_number_start=trial_number_start,
+            n_trials=n_trials,
+            normalize_Y=normalize_Y,
+            normalization_method=normalization_method,
+            normalization_mode=normalization_mode,
+            print_every=print_every,
+            use_cuda=use_cuda
+        ), joinpath(save_folder, "tuning_args.txt")) 
+    end
 
     for trial_number in trial_number_start:(trial_number_start+n_trials-1)
         
@@ -133,5 +157,6 @@ function tune_hyperparameters(
         best_r2_so_far = max(best_r2_so_far, current_r2)
     end
     _print_and_save_final_results!(results_df, save_file)
+    
     return results_df
 end
