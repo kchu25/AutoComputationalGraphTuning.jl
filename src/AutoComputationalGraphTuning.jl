@@ -3,7 +3,7 @@ module AutoComputationalGraphTuning
 
 using Random
 using Flux, CUDA
-
+using RealLabelNormalization
 
 const DEFAULT_BATCH_SIZE = 128  # Default batch size if not specified
 const BATCH_SIZE_RANGE = 32:16:256  # Possible batch sizes for random selection

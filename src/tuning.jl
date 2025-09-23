@@ -72,7 +72,7 @@ function tune_hyperparameters(
     n_trials=100,
     normalize_Y=true,
     normalization_method=:zscore,
-    normalization_mode=:columnwise,
+    normalization_mode=:rowwise,
     save_folder=nothing,
     )
 

@@ -17,6 +17,8 @@ Return shuffled (or ordered) indices for train/validation/test splits.
 
 # Example
 train_idx, val_idx, test_idx = get_split_indices(1000; seed=42)
+
+
 """
 function get_split_indices(data_size::Int; 
                             train_ratio::Float64=0.8, 
@@ -66,5 +68,4 @@ function get_split_indices(data_size::Int;
     
     return (train=train_indices, val=val_indices, test=test_indices)
 end
-
 
