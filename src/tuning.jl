@@ -73,6 +73,7 @@ function tune_hyperparameters(
     normalize_Y=true,
     normalization_method=:zscore,
     normalization_mode=:rowwise,
+    print_every=100,
     save_folder=nothing,
     )
 
@@ -111,7 +112,8 @@ function tune_hyperparameters(
         dl_train, dl_val, _ = obtain_data_loaders(
                 setup.processed_data, 
                 batch_size; 
-                rng = rng_global
+                rng = MersenneTwister(rand(Random.GLOBAL_RNG, 1:typemax(Int)))
+                # use this because Flux.DataLoader requires an integer seed
                 )
 
         _, stats = train_model(setup.model, 
@@ -120,7 +122,7 @@ function tune_hyperparameters(
                                setup.Ydim;
                                max_epochs=max_epochs, 
                                patience=patience, 
-                               print_every=1000
+                               print_every=print_every
                                )
         current_r2, val_loss = stats[:best_r2], stats[:best_val_loss]
         push!(results_df, (trial, current_r2, val_loss))

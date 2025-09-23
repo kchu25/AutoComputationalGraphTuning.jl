@@ -1,12 +1,12 @@
 
 """Train single batch and return loss and statistics"""
-function train_batch!(model, opt_state, seq, labels)
+function train_batch!(model, opt_state, seq, labels; loss_fcn=masked_mse)
     seq, labels = seq |> cu, labels |> cu
     nan_mask = .!isnan.(labels)
 
     # Compute loss and gradients
     loss, gs = Flux.withgradient(model) do x
-        CNN.masked_mse(x(seq), labels, nan_mask)
+        loss_fcn(x(seq), labels, nan_mask)
     end
     
     # Update model parameters
@@ -16,12 +16,12 @@ function train_batch!(model, opt_state, seq, labels)
 end
 
 """Train single epoch and return epoch statistics"""
-function train_epoch!(model, opt_state, dataloader, epoch, print_every)
+function train_epoch!(model, opt_state, dataloader, epoch, print_every; loss_fcn=masked_mse)
     epoch_losses = DEFAULT_FLOAT_TYPE[]
     epoch_valid_counts = Int[]
 
     for (batch_idx, (seq, labels)) in enumerate(dataloader)
-        loss, valid_count = train_batch!(model, opt_state, seq, labels)
+        loss, valid_count = train_batch!(model, opt_state, seq, labels; loss_fcn=loss_fcn)
 
         push!(epoch_losses, loss)
         push!(epoch_valid_counts, valid_count)

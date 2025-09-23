@@ -14,16 +14,6 @@ leading_colons(x) = ntuple(_ -> :, ndims(x) - 1)
 
 """
     train_val_test_split(data, labels; train_ratio=0.8, val_ratio=0.1, test_ratio=0.1, shuffle=true, seed=nothing)
-# Example
-```julia
-A = rand(3, 4, 5)
-A[leading_colons(A)..., 2]  # selects all elements in the last dimension at index 2
-```
-"""
-leading_colons(x) = ntuple(_ -> :, ndims(x) - 1)
-
-"""
-    train_val_test_split(data, labels; train_ratio=0.8, val_ratio=0.1, test_ratio=0.1, shuffle=true, seed=nothing)
 
 Split data and labels together into train/validation/test sets.
 

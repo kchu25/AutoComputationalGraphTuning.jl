@@ -18,7 +18,7 @@ function obtain_data_loaders(processed_data, batch_size; rng=nothing)
         batchsize = batch_size,
         shuffle = true,
         partial = false,
-        rng = isnothing(rng) ? Random.GLOBAL_RNG : rng
+        rng = rng
     )
 
     dl_val = Flux.DataLoader(
@@ -26,7 +26,7 @@ function obtain_data_loaders(processed_data, batch_size; rng=nothing)
         batchsize = batch_size,
         shuffle = false,
         partial = false,
-        rng = isnothing(rng) ? Random.GLOBAL_RNG : MersenneTwister(rng)
+        rng = rng
     )
     
     dl_test = Flux.DataLoader(
@@ -34,7 +34,7 @@ function obtain_data_loaders(processed_data, batch_size; rng=nothing)
         batchsize = batch_size,
         shuffle = false,
         partial = false,
-        rng = isnothing(rng) ? Random.GLOBAL_RNG : MersenneTwister(rng)
+        rng = rng
     )
     
     return dl_train, dl_val, dl_test
