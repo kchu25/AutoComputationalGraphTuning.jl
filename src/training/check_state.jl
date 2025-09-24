@@ -2,7 +2,7 @@
 function check_early_stopping!(val_loss, best_val_loss, epochs_without_improvement, 
                                best_model_state, model, min_delta, patience, 
                                aggregated_r2, best_r2)
-    if val_loss < best_val_loss - min_delta && aggregated_r2 > 0
+    if val_loss < best_val_loss - min_delta
         best_val_loss = val_loss
         best_r2 = aggregated_r2
         epochs_without_improvement = 0
