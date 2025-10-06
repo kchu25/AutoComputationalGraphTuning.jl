@@ -25,7 +25,7 @@ function train_final_model(
         use_cuda=use_cuda,
         )
 
-    isnothing(setup) && error("Invalid hyperparameters for final model training")
+    isnothing(setup) && error("Yo man. Invalid hyperparameters for final model training")
 
     # Create combined training dataloader
     dl_combined = Flux.DataLoader(
