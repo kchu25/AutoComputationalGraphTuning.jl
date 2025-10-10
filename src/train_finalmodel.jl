@@ -29,12 +29,13 @@ function train_final_model(
 
     # Create combined training dataloader
     dl_combined = Flux.DataLoader(
-        (setup.processed_data.train.tensor, setup.processed_data.train.labels),
+        (setup.processed_data.train.tensor, setup.processed_data.train.labels), # this is train + val
         batchsize = batch_size,
         shuffle = true,
         partial = false,
         rng = MersenneTwister(seed)
     )
+
     # Create test dataloader
     dl_test = Flux.DataLoader(
         (setup.processed_data.test.tensor, setup.processed_data.test.labels),
@@ -56,3 +57,5 @@ function train_final_model(
     Flux.loadmodel!(setup.model_clone, best_model_state) # load the best model state
     return setup.model_clone, stats
 end
+
+
