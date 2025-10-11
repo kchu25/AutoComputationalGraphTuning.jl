@@ -12,28 +12,29 @@ function set_reproducible_seeds!(seed::Int = 42)
     return Random.GLOBAL_RNG
 end
 
-function obtain_data_loaders(processed_data, batch_size; rng=nothing)
+function obtain_data_loaders(processed_data, batch_size; 
+        rng=Random.GLOBAL_RNG, _shuffle=true, _partial=false)
     dl_train = Flux.DataLoader(
         (processed_data.train.tensor, processed_data.train.labels),
         batchsize = batch_size,
-        shuffle = true,
-        partial = false,
+        shuffle = _shuffle,
+        partial = _partial,
         rng = rng
     )
 
     dl_val = Flux.DataLoader(
         (processed_data.val.tensor, processed_data.val.labels),
         batchsize = batch_size,
-        shuffle = false,
-        partial = false,
+        shuffle = _shuffle,
+        partial = _partial,
         rng = rng
     )
     
     dl_test = Flux.DataLoader(
         (processed_data.test.tensor, processed_data.test.labels),
         batchsize = batch_size,
-        shuffle = false,
-        partial = false,
+        shuffle = _shuffle,
+        partial = _partial,
         rng = rng
     )
     
