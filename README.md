@@ -19,4 +19,9 @@ Following the duck typing practices, these must satisfy the following:
 
 - `model`
     - must define a function called `create_model`
+    - define a property called `linear_sum`
+    <!-- - Optional:
+        - define a property called `first_layer_code`
+        - define a property called `linear_sum_from_code`
+     -->
 

@@ -1,16 +1,14 @@
-function train_final_model(
-    raw_data, 
-    create_model::Function; 
+"""Train final model using training + validation data (combined)"""
+function get_data_combined_and_data_test(
+    raw_data; 
+    create_model::Function, 
     seed=1,
-    max_epochs=50,
-    patience=10,
-    print_every=100,
     randomize_batchsize = true,
     normalize_Y=true,
     normalization_method=:zscore,
     normalization_mode=:rowwise,
     use_cuda=true
-    )
+)
     """Train final model using training + validation data (combined)"""
     rng_global = set_reproducible_seeds!(seed)
 
@@ -44,7 +42,35 @@ function train_final_model(
         partial = false,
         rng = MersenneTwister(seed)
     )
+    return setup, dl_combined, dl_test
+end
 
+
+function train_final_model(
+    raw_data, 
+    create_model::Function; 
+    seed=1,
+    max_epochs=50,
+    patience=10,
+    print_every=100,
+    randomize_batchsize = true,
+    normalize_Y=true,
+    normalization_method=:zscore,
+    normalization_mode=:rowwise,
+    use_cuda=true
+    )
+    """Train final model using training + validation data (combined)"""
+    setup, dl_combined, dl_test = get_data_combined_and_data_test(
+        raw_data; 
+        create_model=create_model, 
+        seed=seed,
+        randomize_batchsize=randomize_batchsize,
+        normalize_Y=normalize_Y,
+        normalization_method=normalization_method,
+        normalization_mode=normalization_mode,
+        use_cuda=use_cuda
+    )
+    
     println("🎯 Training final model with combined train+validation data...")
 
     # Train final model
