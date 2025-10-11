@@ -10,7 +10,7 @@ end
 # Helper: Setup trial with RNG and model
 function _setup_trial(raw_data, create_model, trial_number; 
                       randomize_batchsize, normalize_Y, 
-                      normalization_method, normalization_mode, use_cuda)
+                      normalization_method, normalization_mode, use_cuda, create_new_model)
     rng_global = set_reproducible_seeds!(trial_number)
     batch_size = randomize_batchsize ? rand(rng_global, BATCH_SIZE_RANGE) : DEFAULT_BATCH_SIZE
     
@@ -22,7 +22,8 @@ function _setup_trial(raw_data, create_model, trial_number;
         normalization_method=normalization_method,
         normalization_mode=normalization_mode, 
         rng=rng_global,
-        use_cuda=use_cuda
+        use_cuda=use_cuda,
+        create_new_model=create_new_model
     )
     
     return rng_global, setup
@@ -105,7 +106,8 @@ function tune_hyperparameters(
     normalization_mode=:rowwise,
     print_every=100,
     save_folder=nothing,
-    use_cuda=true
+    use_cuda=true,
+    create_new_model=true
     )
 
     results_df = DataFrame(
@@ -141,7 +143,8 @@ function tune_hyperparameters(
                                          normalize_Y=normalize_Y,
                                          normalization_method=normalization_method,
                                          normalization_mode=normalization_mode,
-                                         use_cuda=use_cuda)
+                                         use_cuda=use_cuda,
+                                         create_new_model=create_new_model)
 
         if isnothing(setup)
             println("  ❌ Invalid setup, skipping...")
