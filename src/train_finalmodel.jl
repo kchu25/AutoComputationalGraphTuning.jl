@@ -1,7 +1,33 @@
-"""Train final model using training + validation data (combined)"""
+"""
+    get_data_combined_and_data_test(raw_data; create_model, seed, randomize_batchsize, normalize_Y, normalization_method, normalization_mode, use_cuda)
+
+Prepare combined training data (train+val) and test data loaders for final model training.
+"""
+
+# Helper: Setup final model trial with RNG and model
+function _setup_final_trial(raw_data, create_model, seed;
+                            randomize_batchsize, normalize_Y,
+                            normalization_method, normalization_mode, use_cuda)
+    rng_global = set_reproducible_seeds!(seed)
+    batch_size = randomize_batchsize ? rand(rng_global, BATCH_SIZE_RANGE) : DEFAULT_BATCH_SIZE
+    
+    setup = setup_model_and_training_final(
+        raw_data, 
+        create_model, 
+        batch_size;
+        normalize_Y=normalize_Y,
+        normalization_method=normalization_method,
+        normalization_mode=normalization_mode,
+        rng=rng_global,
+        use_cuda=use_cuda
+    )
+    
+    return rng_global, setup
+end
+
 function get_data_combined_and_data_test(
-    raw_data; 
-    create_model::Function, 
+    raw_data,
+    create_model::Function; 
     seed=1,
     randomize_batchsize = true,
     normalize_Y=true,
@@ -9,26 +35,21 @@ function get_data_combined_and_data_test(
     normalization_mode=:rowwise,
     use_cuda=true
 )
-    """Train final model using training + validation data (combined)"""
-    rng_global = set_reproducible_seeds!(seed)
-
-    batch_size = randomize_batchsize ? rand(rng_global, BATCH_SIZE_RANGE) : DEFAULT_BATCH_SIZE
-
-    # Setup model and data (train+val combined)
-    setup = setup_model_and_training_final(raw_data, create_model, batch_size;
+    rng_global, setup = _setup_final_trial(
+        raw_data, create_model, seed;
+        randomize_batchsize=randomize_batchsize,
         normalize_Y=normalize_Y,
         normalization_method=normalization_method,
         normalization_mode=normalization_mode,
-        rng=rng_global,
-        use_cuda=use_cuda,
-        )
+        use_cuda=use_cuda
+    )
 
     isnothing(setup) && error("Yo man. Invalid hyperparameters for final model training")
 
     # Create combined training dataloader
     dl_combined = Flux.DataLoader(
         (setup.processed_data.train.tensor, setup.processed_data.train.labels), # this is train + val
-        batchsize = batch_size,
+        batchsize = setup.batch_size,
         shuffle = true,
         partial = false,
         rng = MersenneTwister(seed)
@@ -37,7 +58,7 @@ function get_data_combined_and_data_test(
     # Create test dataloader
     dl_test = Flux.DataLoader(
         (setup.processed_data.test.tensor, setup.processed_data.test.labels),
-        batchsize = batch_size,
+        batchsize = setup.batch_size,
         shuffle = false,
         partial = false,
         rng = MersenneTwister(seed)
@@ -61,8 +82,8 @@ function train_final_model(
     )
     """Train final model using training + validation data (combined)"""
     setup, dl_combined, dl_test = get_data_combined_and_data_test(
-        raw_data; 
-        create_model=create_model, 
+        raw_data, 
+        create_model; 
         seed=seed,
         randomize_batchsize=randomize_batchsize,
         normalize_Y=normalize_Y,
@@ -70,7 +91,7 @@ function train_final_model(
         normalization_mode=normalization_mode,
         use_cuda=use_cuda
     )
-    
+
     println("🎯 Training final model with combined train+validation data...")
 
     # Train final model

@@ -37,12 +37,13 @@ function setup_model_and_training(
     val_split = DataSplit(splits.val.X, val_Y)
     test_split = DataSplit(splits.test.X, test_Y)
     processed_data = PreprocessedData(train_split, val_split, test_split)
-        
+    
     return (
         model = m,
         optimizer_state = opt_state, 
         processed_data = processed_data,
         Ydim = Ydim,
+        batch_size = batch_size,
     )
 end
 
@@ -94,6 +95,7 @@ function setup_model_and_training_final(
         optimizer_state = opt_state, 
         processed_data = processed_data,
         Ydim = Ydim,
+        batch_size = batch_size,
         model_clone = deepcopy(m) # for storing the best model state
     )
 end

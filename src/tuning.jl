@@ -7,6 +7,27 @@ function _setup_save_file(save_folder)
     return save_file
 end
 
+# Helper: Setup trial with RNG and model
+function _setup_trial(raw_data, create_model, trial_number; 
+                      randomize_batchsize, normalize_Y, 
+                      normalization_method, normalization_mode, use_cuda)
+    rng_global = set_reproducible_seeds!(trial_number)
+    batch_size = randomize_batchsize ? rand(rng_global, BATCH_SIZE_RANGE) : DEFAULT_BATCH_SIZE
+    
+    setup = setup_model_and_training(
+        raw_data, 
+        create_model,
+        batch_size;
+        normalize_Y=normalize_Y,
+        normalization_method=normalization_method,
+        normalization_mode=normalization_mode, 
+        rng=rng_global,
+        use_cuda=use_cuda
+    )
+    
+    return rng_global, setup
+end
+
 # Helper: Save results if new best R²
 function _maybe_save_results!(results_df, save_file, current_r2, best_r2_so_far)
     if isnothing(save_file)
@@ -115,21 +136,12 @@ function tune_hyperparameters(
         
         println("🔍 Hyperparameter trial $trial_number (seed: $trial_number)")
 
-        # set the seed number as the trial number
-        rng_global = set_reproducible_seeds!(trial_number)
-        # generate hyperparameters and batch size
-        batch_size = randomize_batchsize ? rand(rng_global, BATCH_SIZE_RANGE) : DEFAULT_BATCH_SIZE
-
-        setup = setup_model_and_training(
-            raw_data, 
-            create_model,
-            batch_size;
-            normalize_Y=normalize_Y,
-            normalization_method=normalization_method,
-            normalization_mode=normalization_mode, 
-            rng = rng_global,
-            use_cuda=use_cuda
-            )
+        rng_global, setup = _setup_trial(raw_data, create_model, trial_number; 
+                                         randomize_batchsize=randomize_batchsize,
+                                         normalize_Y=normalize_Y,
+                                         normalization_method=normalization_method,
+                                         normalization_mode=normalization_mode,
+                                         use_cuda=use_cuda)
 
         if isnothing(setup)
             println("  ❌ Invalid setup, skipping...")
@@ -138,7 +150,7 @@ function tune_hyperparameters(
 
         dl_train, dl_val, _ = obtain_data_loaders(
                 setup.processed_data, 
-                batch_size; 
+                setup.batch_size; 
                 rng = MersenneTwister(rand(Random.GLOBAL_RNG, 1:typemax(Int)))
                 # use this because Flux.DataLoader requires an integer seed
                 )
