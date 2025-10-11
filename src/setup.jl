@@ -1,28 +1,25 @@
 function setup_model_and_training(
         data, 
-        create_model::Function,
+        create_model::Union{Function,Nothing},
         batch_size::Int;
         normalize_Y=true,
         normalization_method=:zscore,
         normalization_mode=:rowwise,
         rng=Random.GLOBAL_RNG,
-        use_cuda=true
+        use_cuda=true,
+        create_new_model=true
         )
     """Common setup for model creation and data preparation"""
-    # Get model, optimizer, dims
-    result = _get_dims_and_model(data, create_model, batch_size; rng=rng, use_cuda=use_cuda)
-    if result === nothing
-        return nothing
-    end
-    m = result.model
-    opt_state = result.optimizer_state
-    Ydim = result.Ydim
     
-    # 3. split the data, normalize, and create data loaders
-    # 3-1 Split data first (no processing)
-    splits = train_val_test_split(data; _shuffle=true, rng=rng)
-    splits.val.Y |> size |> println
-    # 3-2 Normalize labels if needed
+    # Create independent RNGs from the main RNG
+    # This ensures reproducibility regardless of execution order
+    model_rng = MersenneTwister(rand(rng, UInt))
+    split_rng = MersenneTwister(rand(rng, UInt))
+    
+    # 1. Split data first (using split_rng)
+    splits = train_val_test_split(data; _shuffle=true, rng=split_rng)
+    
+    # 2. Normalize labels if needed
     if normalize_Y
         train_stats = compute_normalization_stats(splits.train.Y; 
                 method = normalization_method, mode = normalization_mode)
@@ -33,49 +30,75 @@ function setup_model_and_training(
         train_stats = nothing
         train_Y, val_Y, test_Y = splits.train.Y, splits.val.Y, splits.test.Y
     end
+    
     train_split = DataSplit(splits.train.X, train_Y, train_stats)
     val_split = DataSplit(splits.val.X, val_Y)
     test_split = DataSplit(splits.test.X, test_Y)
     processed_data = PreprocessedData(train_split, val_split, test_split)
     
-    return (
-        model = m,
-        optimizer_state = opt_state, 
-        processed_data = processed_data,
-        Ydim = Ydim,
-        batch_size = batch_size,
-    )
+    # 3. Optionally create model (using model_rng)
+    if create_new_model
+        if isnothing(create_model)
+            error("create_model function must be provided when create_new_model=true")
+        end
+        
+        result = _get_dims_and_model(data, create_model, batch_size; rng=model_rng, use_cuda=use_cuda)
+        if result === nothing
+            return nothing
+        end
+        
+        return (
+            model = result.model,
+            optimizer_state = result.optimizer_state, 
+            processed_data = processed_data,
+            Ydim = result.Ydim,
+            batch_size = batch_size,
+        )
+    else
+        # Return data only (no model)
+        Ydim = nothing
+        try
+            Ydim = data.Y_dim
+        catch
+            println("⚠️  Warning: Could not get Y_dim from data")
+        end
+        
+        return (
+            model = nothing,
+            optimizer_state = nothing, 
+            processed_data = processed_data,
+            Ydim = Ydim,
+            batch_size = batch_size,
+        )
+    end
 end
 
 
 function setup_model_and_training_final(
         data, 
-        create_model::Function,
+        create_model::Union{Function,Nothing},
         batch_size::Int;
         normalize_Y=true,
         normalization_method=:zscore,
         normalization_mode=:rowwise,
         rng=Random.GLOBAL_RNG,
         use_cuda=true,
+        create_new_model=true
         )
     """Setup for final training: combine train and val sets, return model, optimizer, processed data, Ydim."""
-    # Get model, optimizer, dims
-    result = _get_dims_and_model(data, create_model, batch_size; rng=rng, use_cuda=use_cuda)
-    if result === nothing
-        return nothing
-    end
-    m = result.model
-    opt_state = result.optimizer_state
-    Ydim = result.Ydim
+    
+    # Create independent RNGs
+    model_rng = MersenneTwister(rand(rng, UInt))
+    split_rng = MersenneTwister(rand(rng, UInt))
+    
+    # 1. Split data first (using split_rng)
+    splits = train_val_test_split(data; _shuffle=true, rng=split_rng)
 
-    # 3. split the data
-    splits = train_val_test_split(data; _shuffle=true, rng=rng)
-
-    # 4. Combine train and val splits
+    # 2. Combine train and val splits
     combined_X = cat(splits.train.X, splits.val.X, dims=ndims(splits.train.X))
     combined_Y = cat(splits.train.Y, splits.val.Y, dims=ndims(splits.train.Y))
 
-    # 5. Normalize if needed
+    # 3. Normalize if needed
     if normalize_Y
         train_stats = compute_normalization_stats(combined_Y; 
                 method = normalization_method, mode = normalization_mode)
@@ -90,14 +113,43 @@ function setup_model_and_training_final(
     test_split = DataSplit(splits.test.X, test_Y)
     processed_data = PreprocessedData(train_split, nothing, test_split)
 
-    return (
-        model = m,
-        optimizer_state = opt_state, 
-        processed_data = processed_data,
-        Ydim = Ydim,
-        batch_size = batch_size,
-        model_clone = deepcopy(m) # for storing the best model state
-    )
+    # 4. Optionally create model (using model_rng)
+    if create_new_model
+        if isnothing(create_model)
+            error("create_model function must be provided when create_new_model=true")
+        end
+        
+        result = _get_dims_and_model(data, create_model, batch_size; rng=model_rng, use_cuda=use_cuda)
+        if result === nothing
+            return nothing
+        end
+
+        return (
+            model = result.model,
+            optimizer_state = result.optimizer_state, 
+            processed_data = processed_data,
+            Ydim = result.Ydim,
+            batch_size = batch_size,
+            model_clone = deepcopy(result.model)
+        )
+    else
+        # Return data only (no model)
+        Ydim = nothing
+        try
+            Ydim = data.Y_dim
+        catch
+            println("⚠️  Warning: Could not get Y_dim from data")
+        end
+        
+        return (
+            model = nothing,
+            optimizer_state = nothing, 
+            processed_data = processed_data,
+            Ydim = Ydim,
+            batch_size = batch_size,
+            model_clone = nothing
+        )
+    end
 end
 
 # Helper to get dims, create model, and optimizer
