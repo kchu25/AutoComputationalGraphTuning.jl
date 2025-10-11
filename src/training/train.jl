@@ -56,7 +56,8 @@ function train_model(model, opt_state, train_dl, val_dl, output_dim;
                      patience=10, 
                      min_delta=1e-4, 
                      print_every=100, 
-                     test_set=false
+                     test_set=false,
+                     loss_fcn=masked_mse
                      )
     
 
@@ -79,7 +80,7 @@ function train_model(model, opt_state, train_dl, val_dl, output_dim;
     
     for epoch in 1:max_epochs
         # Train one epoch
-        epoch_avg_loss, epoch_avg_valid = train_epoch!(model, opt_state, train_dl, epoch, print_every)
+        epoch_avg_loss, epoch_avg_valid = train_epoch!(model, opt_state, train_dl, epoch, print_every; loss_fcn=loss_fcn)
         
         # Evaluate validation metrics
         val_loss, individual_r2, aggregated_r2 = 

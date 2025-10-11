@@ -7,7 +7,8 @@ Prepare combined training data (train+val) and test data loaders for final model
 # Helper: Setup final model trial with RNG and model
 function _setup_final_trial(raw_data, create_model, seed;
                             randomize_batchsize, normalize_Y,
-                            normalization_method, normalization_mode, use_cuda)
+                            normalization_method, normalization_mode, use_cuda, 
+                            loss_fcn=(loss=Flux.mse, agg=StatsBase.mean))
     rng_global = set_reproducible_seeds!(seed)
     batch_size = randomize_batchsize ? rand(rng_global, BATCH_SIZE_RANGE) : DEFAULT_BATCH_SIZE
     
@@ -19,7 +20,8 @@ function _setup_final_trial(raw_data, create_model, seed;
         normalization_method=normalization_method,
         normalization_mode=normalization_mode,
         rng=rng_global,
-        use_cuda=use_cuda
+        use_cuda=use_cuda,
+        loss_fcn=loss_fcn
     )
     
     return rng_global, setup
@@ -33,7 +35,8 @@ function get_data_combined_and_data_test(
     normalize_Y=true,
     normalization_method=:zscore,
     normalization_mode=:rowwise,
-    use_cuda=true
+    use_cuda=true,
+    loss_fcn=(loss=Flux.mse, agg=StatsBase.mean)
 )
     rng_global, setup = _setup_final_trial(
         raw_data, create_model, seed;
@@ -41,7 +44,8 @@ function get_data_combined_and_data_test(
         normalize_Y=normalize_Y,
         normalization_method=normalization_method,
         normalization_mode=normalization_mode,
-        use_cuda=use_cuda
+        use_cuda=use_cuda,
+        loss_fcn=loss_fcn
     )
 
     isnothing(setup) && error("Yo man. Invalid hyperparameters for final model training")
@@ -78,7 +82,8 @@ function train_final_model(
     normalize_Y=true,
     normalization_method=:zscore,
     normalization_mode=:rowwise,
-    use_cuda=true
+    use_cuda=true,
+    loss_fcn=(loss=Flux.mse, agg=StatsBase.mean)
     )
     """Train final model using training + validation data (combined)"""
     setup, dl_combined, dl_test = get_data_combined_and_data_test(
@@ -89,7 +94,8 @@ function train_final_model(
         normalize_Y=normalize_Y,
         normalization_method=normalization_method,
         normalization_mode=normalization_mode,
-        use_cuda=use_cuda
+        use_cuda=use_cuda,
+        loss_fcn=loss_fcn
     )
 
     println("🎯 Training final model with combined train+validation data...")
@@ -98,7 +104,7 @@ function train_final_model(
     best_model_state, stats = train_model(
         setup.model, setup.optimizer_state, dl_combined, dl_test, setup.Ydim;
         max_epochs=max_epochs, patience=patience, print_every=print_every, 
-        test_set = true
+        test_set = true, loss_fcn=setup.loss_fcn
     )
 
     Flux.loadmodel!(setup.model_clone, best_model_state) # load the best model state

@@ -10,7 +10,8 @@ end
 # Helper: Setup trial with RNG and model
 function _setup_trial(raw_data, create_model, trial_number; 
                       randomize_batchsize, normalize_Y, 
-                      normalization_method, normalization_mode, use_cuda, create_new_model)
+                      normalization_method, normalization_mode, use_cuda, create_new_model, 
+                      loss_fcn=(loss=Flux.mse, agg=StatsBase.mean))
     rng_global = set_reproducible_seeds!(trial_number)
     batch_size = randomize_batchsize ? rand(rng_global, BATCH_SIZE_RANGE) : DEFAULT_BATCH_SIZE
     
@@ -23,7 +24,8 @@ function _setup_trial(raw_data, create_model, trial_number;
         normalization_mode=normalization_mode, 
         rng=rng_global,
         use_cuda=use_cuda,
-        create_new_model=create_new_model
+        create_new_model=create_new_model,
+        loss_fcn=loss_fcn
     )
     
     return rng_global, setup
@@ -48,10 +50,11 @@ function _maybe_save_results!(results_df, save_file, current_r2, best_r2_so_far)
 end
 
 # Helper: Print and save final results
-function _print_and_save_final_results!(results_df, save_file)
+function _print_and_save_final_results!(results_df, save_file, loss_fcn)
     if nrow(results_df) > 0
         sort!(results_df, :best_r2; rev=true)
         println("\n📈 Hyperparameter tuning results:")
+        println("Loss configuration: $(loss_fcn.loss) with $(loss_fcn.agg) aggregation")
         println(results_df)
         if !isnothing(save_file)
             try
@@ -107,13 +110,16 @@ function tune_hyperparameters(
     print_every=100,
     save_folder=nothing,
     use_cuda=true,
-    create_new_model=true
+    create_new_model=true,
+    loss_fcn=(loss=Flux.mse, agg=StatsBase.mean)
     )
 
     results_df = DataFrame(
         seed = Int[], 
         best_r2 = DEFAULT_FLOAT_TYPE[], 
-        val_loss = DEFAULT_FLOAT_TYPE[]
+        val_loss = DEFAULT_FLOAT_TYPE[],
+        loss_function = String[],
+        aggregation = String[]
         )
 
     best_r2_so_far = -Inf
@@ -130,7 +136,8 @@ function tune_hyperparameters(
             normalization_method=normalization_method,
             normalization_mode=normalization_mode,
             print_every=print_every,
-            use_cuda=use_cuda
+            use_cuda=use_cuda,
+            loss_fcn=loss_fcn
         ), joinpath(save_folder, "tuning_args.txt")) 
     end
 
@@ -144,7 +151,8 @@ function tune_hyperparameters(
                                          normalization_method=normalization_method,
                                          normalization_mode=normalization_mode,
                                          use_cuda=use_cuda,
-                                         create_new_model=create_new_model)
+                                         create_new_model=create_new_model,
+                                         loss_fcn=loss_fcn)
 
         if isnothing(setup)
             println("  ❌ Invalid setup, skipping...")
@@ -164,14 +172,18 @@ function tune_hyperparameters(
                                setup.Ydim;
                                max_epochs=max_epochs, 
                                patience=patience, 
-                               print_every=print_every
+                               print_every=print_every,
+                               loss_fcn=setup.loss_fcn
                                )
         current_r2, val_loss = stats[:best_r2], stats[:best_val_loss]
-        push!(results_df, (trial_number, current_r2, val_loss))
+        # Convert loss function and aggregation to string representations
+        loss_str = string(loss_fcn.loss)
+        agg_str = string(loss_fcn.agg)
+        push!(results_df, (trial_number, current_r2, val_loss, loss_str, agg_str))
         _maybe_save_results!(results_df, save_file, current_r2, best_r2_so_far)
         best_r2_so_far = max(best_r2_so_far, current_r2)
     end
-    _print_and_save_final_results!(results_df, save_file)
+    _print_and_save_final_results!(results_df, save_file, loss_fcn)
     
     return results_df
 end

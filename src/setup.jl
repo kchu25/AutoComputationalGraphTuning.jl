@@ -7,7 +7,8 @@ function setup_model_and_training(
         normalization_mode=:rowwise,
         rng=Random.GLOBAL_RNG,
         use_cuda=true,
-        create_new_model=true
+        create_new_model=true,
+        loss_fcn=(loss=Flux.mse, agg=StatsBase.mean)
         )
     """Common setup for model creation and data preparation"""
     
@@ -36,6 +37,9 @@ function setup_model_and_training(
     test_split = DataSplit(splits.test.X, test_Y)
     processed_data = PreprocessedData(train_split, val_split, test_split)
     
+    # Create loss function from config tuple
+    loss_function = create_masked_loss_function(loss_fcn)
+    
     # 3. Optionally create model (using model_rng)
     if create_new_model
         if isnothing(create_model)
@@ -53,6 +57,7 @@ function setup_model_and_training(
             processed_data = processed_data,
             Ydim = result.Ydim,
             batch_size = batch_size,
+            loss_fcn = loss_function,
         )
     else
         # Return data only (no model)
@@ -69,6 +74,7 @@ function setup_model_and_training(
             processed_data = processed_data,
             Ydim = Ydim,
             batch_size = batch_size,
+            loss_fcn = loss_function,
         )
     end
 end
@@ -83,7 +89,8 @@ function setup_model_and_training_final(
         normalization_mode=:rowwise,
         rng=Random.GLOBAL_RNG,
         use_cuda=true,
-        create_new_model=true
+        create_new_model=true,
+        loss_fcn=(loss=Flux.mse, agg=StatsBase.mean)
         )
     """Setup for final training: combine train and val sets, return model, optimizer, processed data, Ydim."""
     
@@ -113,6 +120,9 @@ function setup_model_and_training_final(
     test_split = DataSplit(splits.test.X, test_Y)
     processed_data = PreprocessedData(train_split, nothing, test_split)
 
+    # Create loss function from config tuple
+    loss_function = create_masked_loss_function(loss_fcn)
+
     # 4. Optionally create model (using model_rng)
     if create_new_model
         if isnothing(create_model)
@@ -130,7 +140,8 @@ function setup_model_and_training_final(
             processed_data = processed_data,
             Ydim = result.Ydim,
             batch_size = batch_size,
-            model_clone = deepcopy(result.model)
+            model_clone = deepcopy(result.model),
+            loss_fcn = loss_function,
         )
     else
         # Return data only (no model)
@@ -147,7 +158,8 @@ function setup_model_and_training_final(
             processed_data = processed_data,
             Ydim = Ydim,
             batch_size = batch_size,
-            model_clone = nothing
+            model_clone = nothing,
+            loss_fcn = loss_function,
         )
     end
 end
