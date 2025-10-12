@@ -176,9 +176,29 @@ function tune_hyperparameters(
                                loss_fcn=setup.loss_fcn
                                )
         current_r2, val_loss = stats[:best_r2], stats[:best_val_loss]
+        
+        # Create and save trial configuration
+        trial_config = TrainingConfig(
+            seed = trial_number,
+            normalize_Y = normalize_Y,
+            normalization_method = normalization_method,
+            normalization_mode = normalization_mode,
+            use_cuda = use_cuda,
+            randomize_batchsize = randomize_batchsize,
+            batch_size = setup.batch_size,
+            loss_function = get_function_name(loss_fcn.loss),
+            aggregation = get_function_name(loss_fcn.agg),
+            best_r2 = current_r2,
+            val_loss = val_loss
+        )
+        
+        if !isnothing(save_folder)
+            save_trial_config(trial_config, save_folder)
+        end
+        
         # Convert loss function and aggregation to string representations
-        loss_str = string(loss_fcn.loss)
-        agg_str = string(loss_fcn.agg)
+        loss_str = get_function_name(loss_fcn.loss)
+        agg_str = get_function_name(loss_fcn.agg)
         push!(results_df, (trial_number, current_r2, val_loss, loss_str, agg_str))
         _maybe_save_results!(results_df, save_file, current_r2, best_r2_so_far)
         best_r2_so_far = max(best_r2_so_far, current_r2)

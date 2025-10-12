@@ -112,3 +112,60 @@ function train_final_model(
 end
 
 
+"""
+    train_final_model_from_config(raw_data, create_model::Function, config::TrainingConfig; 
+                                   max_epochs=50, patience=10, print_every=100)
+
+Train final model using configuration loaded from a JSON file (e.g., from tuning results).
+This ensures the same settings used during the best trial are applied to final training.
+
+# Arguments
+- `raw_data`: The dataset to use for training
+- `create_model`: Function to create the model architecture
+- `config`: TrainingConfig loaded from JSON
+- `max_epochs`: Maximum epochs for final training
+- `patience`: Early stopping patience
+- `print_every`: Print progress every N epochs
+
+# Returns
+- `model`: Trained model
+- `stats`: Training statistics
+
+# Example
+```julia
+# Load the best trial configuration from tuning
+config = load_best_trial_config("results/tuning_run_2024-01-01")
+
+# Train final model with the same settings
+model, stats = train_final_model_from_config(data, create_model, config)
+```
+"""
+function train_final_model_from_config(
+    raw_data,
+    create_model::Function,
+    config::TrainingConfig;
+    max_epochs=50,
+    patience=10,
+    print_every=100
+)
+    println("🎯 Training final model from config (seed=$(config.seed))...")
+    
+    loss_fcn = config_to_loss_fcn(config)
+    
+    return train_final_model(
+        raw_data,
+        create_model;
+        seed=config.seed,
+        max_epochs=max_epochs,
+        patience=patience,
+        print_every=print_every,
+        randomize_batchsize=config.randomize_batchsize,
+        normalize_Y=config.normalize_Y,
+        normalization_method=config.normalization_method,
+        normalization_mode=config.normalization_mode,
+        use_cuda=config.use_cuda,
+        loss_fcn=loss_fcn
+    )
+end
+
+

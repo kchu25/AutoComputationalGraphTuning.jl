@@ -53,16 +53,48 @@ This works for both `tune_hyperparameters()` and `train_final_model()` - just pa
 ## Basic Usage
 
 ```julia
-# Tune hyperparameters
+# Tune hyperparameters with automatic config saving
 results = tune_hyperparameters(data, create_model; 
                               max_epochs=50, 
-                              n_trials=100)
+                              n_trials=100,
+                              save_folder="results/my_tuning_run")
 
 # Train final model with best hyperparameters
 model, stats = train_final_model(data, create_model; 
                                 seed=42, 
                                 max_epochs=100)
 ```
+
+## Advanced: Load Best Trial Configuration
+
+When you run tuning with `save_folder`, the package automatically saves:
+- CSV file with all trial results
+- JSON file for each trial in a `json/` subfolder with complete configuration
+
+You can load the best trial's configuration and use it for final training:
+
+```julia
+# Run tuning and save configs
+tune_hyperparameters(data, create_model; 
+                    n_trials=100,
+                    save_folder="results/experiment_001")
+
+# Later, load the best trial configuration
+config = load_best_trial_config("results/experiment_001")
+
+# Train final model using the exact same settings as the best trial
+model, stats = train_final_model_from_config(data, create_model, config;
+                                            max_epochs=200,
+                                            patience=20)
+```
+
+Each trial's JSON config includes:
+- Seed (for reproducibility)
+- Normalization settings (`normalize_Y`, `normalization_method`, `normalization_mode`)
+- Hardware settings (`use_cuda`)
+- Batch size settings (`randomize_batchsize`, actual `batch_size` used)
+- Loss function configuration (`loss_function`, `aggregation`)
+- Trial results (`best_r2`, `val_loss`)
 
 That's it! The package handles data splitting, normalization, early stopping, and gives you flexibility over loss functions while keeping the API simple.
 

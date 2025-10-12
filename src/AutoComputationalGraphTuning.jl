@@ -5,7 +5,8 @@ using Random
 using DataFrames, CSV, Dates
 using Flux, CUDA
 using RealLabelNormalization
-using StatsBase
+using StatsBase, Statistics
+using JSON3, StructTypes
 
 const DEFAULT_FLOAT_TYPE = Float32  # Default floating point type
 const FLUX_MODEL_FLOAT_FCN = Flux.f32 # just to ensure that it matches DEFAULT_FLOAT_TYPE
@@ -24,12 +25,15 @@ include("training/eval.jl")
 include("training/loss.jl")
 include("training/train.jl")
 
-
+include("config_management.jl")
 include("utils.jl")
 include("setup.jl")
 include("tuning.jl")
 include("train_finalmodel.jl")
 
 export setup_model_and_training
+export TrainingConfig, save_trial_config, load_trial_config, load_best_trial_config, config_to_loss_fcn
+export train_final_model, train_final_model_from_config
+export tune_hyperparameters
 
 end
