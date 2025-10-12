@@ -108,7 +108,7 @@ function train_final_model(
     )
 
     Flux.loadmodel!(setup.model_clone, best_model_state) # load the best model state
-    return setup.model_clone, stats
+    return setup.model_clone, stats, setup
 end
 
 
