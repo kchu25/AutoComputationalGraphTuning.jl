@@ -142,6 +142,7 @@ function setup_model_and_training_final(
             batch_size = batch_size,
             model_clone = deepcopy(result.model),
             loss_fcn = loss_function,
+            train_stats = train_stats
         )
     else
         # Return data only (no model)
@@ -160,6 +161,7 @@ function setup_model_and_training_final(
             batch_size = batch_size,
             model_clone = nothing,
             loss_fcn = loss_function,
+            train_stats = train_stats
         )
     end
 end
