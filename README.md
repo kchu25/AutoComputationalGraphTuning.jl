@@ -53,16 +53,23 @@ This works for both `tune_hyperparameters()` and `train_final_model()` - just pa
 ## Basic Usage
 
 ```julia
-# Tune hyperparameters with automatic config saving
-results = tune_hyperparameters(data, create_model; 
-                              max_epochs=50, 
-                              n_trials=100,
-                              save_folder="results/my_tuning_run")
+# Tune hyperparameters - now returns the best model!
+results_df, best_model, best_info = tune_hyperparameters(
+    data, create_model; 
+    max_epochs=50, 
+    n_trials=100,
+    save_folder="results/my_tuning_run"
+)
 
-# Train final model with best hyperparameters
+# The best model is ready to use immediately
+println("Best model achieved R² = $(best_info.r2)")
+println("Best seed was: $(best_info.seed)")
+println("Best batch size: $(best_info.batch_size)")
+
+# Or train a final model with more epochs using best seed
 model, stats = train_final_model(data, create_model; 
-                                seed=42, 
-                                max_epochs=100)
+                                seed=best_info.seed, 
+                                max_epochs=200)
 ```
 
 ## Advanced: Load Best Trial Configuration

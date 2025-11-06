@@ -95,6 +95,8 @@ Tune hyperparameters for a model using train/validation split. Runs multiple tri
 
 # Returns
 - `results_df`: DataFrame with trial, best R², and validation loss for each trial
+- `best_model`: The model with the best validation R² across all trials
+- `best_trial_info`: NamedTuple with information about the best trial (seed, r2, loss, batch_size)
 """
 function tune_hyperparameters(
     raw_data, 
@@ -123,6 +125,10 @@ function tune_hyperparameters(
         )
 
     best_r2_so_far = -Inf
+    best_model_state = nothing
+    best_model_clone = nothing
+    best_trial_seed = nothing
+    best_trial_batch_size = nothing
     save_file = isnothing(save_folder) ? nothing : _setup_save_file(save_folder)
 
     if !isnothing(save_folder)
@@ -166,7 +172,7 @@ function tune_hyperparameters(
                 # use this because Flux.DataLoader requires an integer seed
                 )
 
-        _, stats = train_model(setup.model, 
+        model_state, stats = train_model(setup.model, 
                                setup.optimizer_state, 
                                dl_train, dl_val, 
                                setup.Ydim;
@@ -200,10 +206,38 @@ function tune_hyperparameters(
         loss_str = get_function_name(loss_fcn.loss)
         agg_str = get_function_name(loss_fcn.agg)
         push!(results_df, (trial_number, current_r2, val_loss, loss_str, agg_str))
+        
+        # Track best model across all trials
+        if current_r2 > best_r2_so_far
+            best_model_state = model_state
+            best_model_clone = Flux.deepcopy(setup.model)
+            Flux.loadmodel!(best_model_clone, model_state)
+            best_trial_seed = trial_number
+            best_trial_batch_size = setup.batch_size
+        end
+        
         _maybe_save_results!(results_df, save_file, current_r2, best_r2_so_far)
         best_r2_so_far = max(best_r2_so_far, current_r2)
     end
     _print_and_save_final_results!(results_df, save_file, loss_fcn)
     
-    return results_df
+    # Create best trial info
+    best_trial_info = if !isnothing(best_model_clone)
+        (
+            seed = best_trial_seed,
+            r2 = best_r2_so_far,
+            batch_size = best_trial_batch_size
+        )
+    else
+        nothing
+    end
+    
+    if !isnothing(best_model_clone)
+        println("\n🏆 Best model found:")
+        println("   Seed: $best_trial_seed")
+        println("   R²: $(round(best_r2_so_far, digits=4))")
+        println("   Batch size: $best_trial_batch_size")
+    end
+    
+    return results_df, best_model_clone, best_trial_info
 end
