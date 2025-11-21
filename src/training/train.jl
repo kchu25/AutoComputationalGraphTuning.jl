@@ -7,6 +7,15 @@ function train_batch!(model, opt_state, seq, labels; loss_fcn=masked_mse)
     loss, gs = Flux.withgradient(model) do x
         loss_fcn(x(seq), labels, nan_mask)
     end
+
+    """
+        The above is equivalent to:
+        loss_fn = m -> loss_fcn(m(seq), labels, nan_mask)
+        loss, gs = Flux.withgradient(loss_fn, model)
+
+        function signiture of withgradient:
+            withgradient(f::Function, args...)
+    """
     
     # Update model parameters
     Flux.update!(opt_state, model, gs[1])
