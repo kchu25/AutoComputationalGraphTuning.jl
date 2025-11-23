@@ -21,6 +21,7 @@ include("data_splitting/split.jl")
 
 include("training/log.jl")
 include("training/check_state.jl")
+include("training/customized_losses.jl")
 include("training/eval.jl")
 include("training/loss.jl")
 include("training/train.jl")
@@ -30,10 +31,13 @@ include("utils.jl")
 include("setup.jl")
 include("tuning.jl")
 include("train_finalmodel.jl")
+include("finetune.jl")
 
 export setup_model_and_training
 export TrainingConfig, save_trial_config, load_trial_config, load_best_trial_config, config_to_loss_fcn
 export train_final_model, train_final_model_from_config
 export tune_hyperparameters
+export finetune_model, finetune_model_from_config
+export finetune_grad_loss  # Custom loss for gradient-based fine-tuning
 
 end
