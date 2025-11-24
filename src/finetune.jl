@@ -71,8 +71,8 @@ function finetune_model(model, raw_data;
                        batch_size=nothing,
                        max_epochs=20,
                        patience=5,
-                       print_every=100,
-                       learning_rate=1e-4,
+                       print_every=50,
+                       learning_rate=1e-5,  # Lower default LR to prevent explosion
                        normalize_Y=true,
                        normalization_method=:zscore,
                        normalization_mode=:rowwise,
@@ -90,20 +90,21 @@ function finetune_model(model, raw_data;
     println("Seed: $seed, Batch size: $batch_size")
     println("Learning rate: $learning_rate")
     println("Max epochs: $max_epochs, Patience: $patience")
+    println("Print every: $print_every batches")
     println("Combine train+val: $combine_train_val")
     println("=" ^ 60)
     
-    # Setup data (but don't create a new model - use the provided one)
-    setup = setup_training(raw_data, (_...) -> model, batch_size;
+    # Setup data processing only (no model creation)
+    setup = setup_training(raw_data, nothing, batch_size;
                           normalize_Y, normalization_method, normalization_mode,
                           rng, use_cuda, combine_train_val,
-                          loss_fcn=masked_mse)  # Placeholder, will use compute_loss
+                          loss_fcn=(loss=Flux.mse, agg=StatsBase.mean))
     
     if isnothing(setup)
         error("Failed to setup training data")
     end
     
-    # Create optimizer with specified learning rate
+    # Create optimizer with specified learning rate for the provided model
     opt = Flux.Adam(learning_rate)
     opt_state = Flux.setup(opt, model)
     

@@ -41,7 +41,7 @@ function setup_training(data, create_model, batch_size; combine_train_val=false,
             return nothing
         end
     else
-        (nothing, nothing, get(data, :Y_dim, nothing))
+        (nothing, nothing, data.Y_dim)
     end
     
     (model=model, opt_state=opt_state, processed_data=processed_data, Ydim=Ydim, batch_size=batch_size,

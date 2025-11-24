@@ -7,6 +7,10 @@ using Flux, CUDA
 using RealLabelNormalization
 using StatsBase, Statistics
 using JSON3, StructTypes
+using Zygote
+using Zygote: @ignore
+# using ChainRulesCore: @ignore_derivatives
+
 
 const DEFAULT_FLOAT_TYPE = Float32  # Default floating point type
 const FLUX_MODEL_FLOAT_FCN = Flux.f32 # just to ensure that it matches DEFAULT_FLOAT_TYPE
