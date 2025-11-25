@@ -36,6 +36,7 @@ include("setup.jl")
 include("tuning.jl")
 include("train_finalmodel.jl")
 include("finetune.jl")
+include("train_code_processor.jl")
 
 export setup_model_and_training
 export TrainingConfig, save_trial_config, load_trial_config, load_best_trial_config, config_to_loss_fcn
@@ -43,5 +44,6 @@ export train_final_model, train_final_model_from_config
 export tune_hyperparameters
 export finetune_model, finetune_model_from_config
 export finetune_grad_loss  # Custom loss for gradient-based fine-tuning
+export train_code_processor  # Train code processor for gradient transformations
 
 end
