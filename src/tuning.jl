@@ -58,6 +58,24 @@ function tune_hyperparameters(raw_data, create_model::Function;
         num_params = sum(length, Flux.trainables(setup.model))
         push!(results, (trial, r2, loss, num_params))
         
+        # Save trial config to JSON
+        if !isnothing(save_folder)
+            config = TrainingConfig(
+                seed=trial,
+                batch_size=batch_size,
+                normalize_Y=normalize_Y,
+                normalization_method=normalization_method,
+                normalization_mode=normalization_mode,
+                use_cuda=use_cuda,
+                randomize_batchsize=randomize_batchsize,
+                loss_function=get_function_name(loss_fcn.loss),
+                aggregation=get_function_name(loss_fcn.agg),
+                best_r2=r2,
+                val_loss=loss
+            )
+            save_trial_config(config, save_folder)
+        end
+        
         if r2 > best_r2
             best_r2, best_seed, best_batch = r2, trial, batch_size
             best_model = Flux.deepcopy(setup.model)
