@@ -23,7 +23,7 @@ Tune hyperparameters across multiple trials with different seeds.
 - best_model: Model with highest validation R²
 - best_info: NamedTuple (seed, r2, batch_size) of best trial
 """
-function tune_hyperparameters(raw_data, create_model::Function;
+function tune_hyperparameters(raw_data, model_module::Module;
                               randomize_batchsize=true, max_epochs=50, patience=5,
                               trial_number_start=1, n_trials=100,
                               normalize_Y=true, normalization_method=:zscore, normalization_mode=:rowwise,
@@ -40,7 +40,7 @@ function tune_hyperparameters(raw_data, create_model::Function;
         rng = set_reproducible_seeds!(trial)
         batch_size = randomize_batchsize ? rand(rng, BATCH_SIZE_RANGE) : DEFAULT_BATCH_SIZE
         
-        setup = setup_training(raw_data, create_model, batch_size;
+        setup = setup_training(raw_data, model_module.create_model, batch_size;
                               normalize_Y, normalization_method, normalization_mode, rng, use_cuda, loss_fcn, model_kwargs...)
         
         if isnothing(setup)

@@ -148,12 +148,14 @@ function train_model(model, opt_state, train_dl, val_dl, output_dim;
         
         # Print summary
         print_epoch_summary(epoch, epoch_avg_loss, val_loss, aggregated_r2, individual_r2, epoch_avg_valid; test_set=test_set)
-        
+                
+        model.training[] = false  # Set to eval mode for validation
         # Check early stopping
         best_val_loss, epochs_without_improvement, best_model_state, best_r2, should_stop = 
             check_early_stopping!(val_loss, best_val_loss, epochs_without_improvement, 
                                   best_model_state, model, min_delta, patience, 
                                   aggregated_r2, best_r2)
+        model.training[] = true   # Back to training mode
         
         println("-" ^ 50)
         
