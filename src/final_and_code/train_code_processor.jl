@@ -4,11 +4,13 @@ Train a code processor to learn gradient transformations.
 # Arguments
 - `model`: Pre-trained model with code processor architecture
 - `dataloader`: DataLoader with training data
-- `model_module`: Module containing model functions (e.g., VeryBasicCNN2)
-- `arch_type`: Architecture type for code processor (e.g., :plain, :mbconv)
-- `seed`: Random seed
+- `proc_wrap`: Named tuple containing processor functions and config with fields:
+    - `create_processor`: Function to create processor
+    - `arch_type`: Architecture type (e.g., :plain, :mbconv)
+    - `predict_from_code`: Function to predict from code
+    - `process_code`: Function to process code with gradient
+- `seed`: Random seed (default: 42)
 - `max_epochs`: Training epochs (default: 15)
-- `learning_rate`: Learning rate (default: 1e-3, not used with AdaBelief default settings)
 - `predict_position`: Position for prediction (default: 1)
 - `use_hard_mask`: Whether to use hard masking in processor (default: true)
 - `inference_code_layer`: Layer for code inference (default: from model.hp)
@@ -19,20 +21,29 @@ Train a code processor to learn gradient transformations.
 
 # Example
 ```julia
+# Define processor wrapper
+proc_wrap = (
+    create_processor = create_code_processor,
+    arch_type = :mbconv,
+    predict_from_code = predict_from_code,
+    process_code = process_code
+)
+
+# Train final model first
+model, stats, train_stats, dl_train, dl_test = train_final_model(data, create_model; seed=42)
+
+# Then train processor
 processor, losses = train_code_processor(
-    model, dataloader, VeryBasicCNN2;
-    arch_type=:mbconv,
-    use_hard_mask=true,
+    model, dl_train, proc_wrap;
     seed=42,
-    max_epochs=20
+    max_epochs=20,
+    use_hard_mask=true
 )
 ```
 """
-function train_code_processor(model, dataloader, create_code_processor::Function;
-                             arch_type,  # Required - user must specify
+function train_code_processor(model, dataloader, proc_wrap;
                              seed=42,
-                             max_epochs=15,
-                             learning_rate=1e-3,
+                             max_epochs=20,
                              predict_position=1,
                              use_hard_mask=true,
                              inference_code_layer=nothing)
@@ -42,14 +53,15 @@ function train_code_processor(model, dataloader, create_code_processor::Function
     # Get inference layer from model if not provided
     inf_layer = isnothing(inference_code_layer) ? model.hp.inference_code_layer : inference_code_layer
     
-    # Create processor and optimizer using module
-    processor = create_code_processor(model.hp; arch_type=arch_type, use_hard_mask=use_hard_mask)
+    # Create processor and optimizer
+    processor = proc_wrap.create_processor(
+            model.hp; arch_type=proc_wrap.arch_type, use_hard_mask=use_hard_mask)
     opt_state = Flux.setup(Flux.AdaBelief(), processor)
     
     loss_history = DEFAULT_FLOAT_TYPE[]
     
     println("=" ^ 60)
-    println("Training code processor (arch: $arch_type, use_hard_mask: $use_hard_mask)")
+    println("🔧 Training code processor (arch: $(proc_wrap.arch_type), use_hard_mask: $use_hard_mask)")
     println("Seed: $seed, Epochs: $max_epochs")
     println("=" ^ 60)
     
@@ -61,17 +73,17 @@ function train_code_processor(model, dataloader, create_code_processor::Function
             code = model.code(seq |> gpu)
             
             # Compute gradient of predictions w.r.t. code
-            preds, grad = Flux.withgradient(code) do x
-                preds = model_module.predict_from_code(model, x; 
+            (_, preds), g = Flux.withgradient(code) do x
+                preds = proc_wrap.predict_from_code(model, x; 
                     layer=inf_layer,
                     apply_nonlinearity=false,
                     predict_position=predict_position)
-                preds
+                preds |> sum, preds
             end
             
             # Train processor
             loss, grads = Flux.withgradient(processor) do p
-                pg = model_module.process_code(p, code, grad[1]; step=step)
+                 pg = proc_wrap.process_code(p, code, g[1]; step=step)
                 sum(abs2, vec(sum(pg .* code, dims=(1,2))) - preds)
             end
             
@@ -86,7 +98,7 @@ function train_code_processor(model, dataloader, create_code_processor::Function
     end
     
     println("=" ^ 60)
-    println("Training complete!")
+    println("Code processor training complete!")
     println("Final loss: $(round(loss_history[end], digits=6))")
     println("=" ^ 60)
     
