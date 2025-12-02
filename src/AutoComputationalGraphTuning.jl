@@ -18,23 +18,23 @@ const DEFAULT_BATCH_SIZE = 128  # Default batch size if not specified
 const BATCH_SIZE_RANGE = 32:16:256  # Possible batch sizes for random selection
 
 # Subroutine for splitting the data into train/val/test sets.
-include("data_splitting/structs.jl")
-include("data_splitting/indexing.jl")
-include("data_splitting/split.jl")
+include("_data_splitting/structs.jl")
+include("_data_splitting/indexing.jl")
+include("_data_splitting/split.jl")
 
-include("training/log.jl")
-include("training/check_state.jl")
-include("training/customized_losses.jl")
-include("training/eval.jl")
-include("training/loss.jl")
-include("training/train.jl")
+include("_training/log.jl")
+include("_training/check_state.jl")
+include("_training/customized_losses.jl")
+include("_training/eval.jl")
+include("_training/loss.jl")
+include("_training/train.jl")
 
 include("config_management.jl")
 include("utils.jl")
 include("setup.jl")
-include("tuning.jl")
-include("train_finalmodel.jl")
-include("train_code_processor.jl")
+include("tune/tuning.jl")
+include("final_and_code/train_finalmodel.jl")
+include("final_and_code/train_code_processor.jl")
 
 export setup_model_and_training
 export TrainingConfig, save_trial_config, load_trial_config, load_best_trial_config, config_to_loss_fcn

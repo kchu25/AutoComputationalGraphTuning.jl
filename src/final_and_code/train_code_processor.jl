@@ -28,7 +28,7 @@ processor, losses = train_code_processor(
 )
 ```
 """
-function train_code_processor(model, dataloader, model_module::Module;
+function train_code_processor(model, dataloader, create_code_processor::Function;
                              arch_type,  # Required - user must specify
                              seed=42,
                              max_epochs=15,
@@ -43,7 +43,7 @@ function train_code_processor(model, dataloader, model_module::Module;
     inf_layer = isnothing(inference_code_layer) ? model.hp.inference_code_layer : inference_code_layer
     
     # Create processor and optimizer using module
-    processor = model_module.create_code_processor(model.hp; arch_type=arch_type, use_hard_mask=use_hard_mask)
+    processor = create_code_processor(model.hp; arch_type=arch_type, use_hard_mask=use_hard_mask)
     opt_state = Flux.setup(Flux.AdaBelief(), processor)
     
     loss_history = DEFAULT_FLOAT_TYPE[]
@@ -71,8 +71,8 @@ function train_code_processor(model, dataloader, model_module::Module;
             
             # Train processor
             loss, grads = Flux.withgradient(processor) do p
-                c = model_module.process_code_with_gradient(p, code, grad[1]; step=step)
-                sum(abs2, vec(sum(c .* code, dims=(1,2))) - preds)
+                pg = model_module.process_code(p, code, grad[1]; step=step)
+                sum(abs2, vec(sum(pg .* code, dims=(1,2))) - preds)
             end
             
             Flux.update!(opt_state, processor, grads[1])
