@@ -3,7 +3,9 @@ module AutoComputationalGraphTuning
 
 using Random
 using DataFrames, CSV, Dates
-using Flux, CUDA
+using cuDNN 
+using CUDA
+using Flux
 using RealLabelNormalization
 using StatsBase, Statistics
 using JSON3, StructTypes

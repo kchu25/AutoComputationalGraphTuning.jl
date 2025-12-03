@@ -55,6 +55,11 @@ function train_final_model(raw_data, create_model::Function;
     # Create dataloaders
     dl_train, dl_test = _create_final_dataloaders(setup, batch_size, seed)
     
+    if max_epochs == 0
+        println("⚠️  max_epochs=0 specified, skipping training and returning untrained model.")
+        return nothing, nothing, nothing, dl_train, dl_test
+    end
+
     # Train final model
     trained_model, stats = _train_final_model!(setup, dl_train, dl_test;
                                                max_epochs, patience, print_every)
