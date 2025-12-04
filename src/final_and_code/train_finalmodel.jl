@@ -35,7 +35,7 @@ function train_final_model(raw_data, create_model::Function;
     
     # Skip training if max_epochs=0
     if max_epochs == 0
-        println("⚠️  max_epochs=0, returning untrained model")
+        println("⚠️  max_epochs=0; return only the dataloaders for final model training.")
         return nothing, nothing, nothing, dl_train, dl_test
     end
 
