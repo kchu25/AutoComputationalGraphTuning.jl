@@ -26,7 +26,7 @@ end
     X = reshape(1:100, 1, 100)
     Y = reshape(1:100, 1, 100)
     data = (X = X, Y = Y)
-    splits = A.train_val_test_split(data; train_ratio=0.7, val_ratio=0.2, test_ratio=0.1, rng=MersenneTwister(42))
+    splits, splits_indices = A.train_val_test_split(data; train_ratio=0.7, val_ratio=0.2, test_ratio=0.1, rng=MersenneTwister(42))
     @test size(splits.train.X, 2) + size(splits.val.X, 2) + size(splits.test.X, 2) == 100
     @test size(splits.train.X, 2) == 70
     @test size(splits.val.X, 2) == 20

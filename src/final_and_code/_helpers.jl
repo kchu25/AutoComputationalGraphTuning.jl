@@ -11,7 +11,8 @@ function _prepare_final_model_setup(raw_data, create_model::Function;
     batch_size = randomize_batchsize ? rand(rng, BATCH_SIZE_RANGE) : DEFAULT_BATCH_SIZE
     
     setup = setup_training(raw_data, create_model, batch_size; combine_train_val=true,
-                          normalize_Y, normalization_method, normalization_mode, rng, use_cuda, loss_fcn, model_kwargs...)
+                          normalize_Y, normalization_method, normalization_mode, rng, 
+                          use_cuda, loss_fcn, model_kwargs...)
     isnothing(setup) && error("Invalid hyperparameters for final model training")
     
     return setup, batch_size

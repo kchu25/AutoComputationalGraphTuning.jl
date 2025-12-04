@@ -33,7 +33,8 @@ function _run_trial(trial, raw_data, create_model, randomize_batchsize,
     batch_size = randomize_batchsize ? rand(rng, BATCH_SIZE_RANGE) : DEFAULT_BATCH_SIZE
     
     setup = setup_training(raw_data, create_model, batch_size;
-                          normalize_Y, normalization_method, normalization_mode, rng, use_cuda, loss_fcn, model_kwargs...)
+                          normalize_Y, normalization_method, normalization_mode, 
+                          rng, use_cuda, loss_fcn, model_kwargs...)
     
     if isnothing(setup)
         println("  ❌ Invalid setup, skipping...")

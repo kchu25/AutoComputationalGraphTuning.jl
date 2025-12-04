@@ -31,7 +31,7 @@ Uses `@views` for memory efficiency - returns lightweight views instead of copyi
 # Examples
 ```julia
 data = (X = rand(10, 100), Y = rand(1, 100))
-splits = train_val_test_split(data; seed=42)
+splits, splits_indices = train_val_test_split(data; seed=42)
 train_X = splits.train.X
 train_Y = splits.train.Y
 ```
@@ -71,5 +71,5 @@ function train_val_test_split(
         train = (X = view(data.X, leading_colons(data.X)..., indices.train), Y = view(data.Y, leading_colons(data.Y)..., indices.train)),
         val   = (X = view(data.X, leading_colons(data.X)..., indices.val),   Y = view(data.Y, leading_colons(data.Y)..., indices.val)),
         test  = (X = view(data.X, leading_colons(data.X)..., indices.test),  Y = view(data.Y, leading_colons(data.Y)..., indices.test))
-    )
+    ), indices
 end

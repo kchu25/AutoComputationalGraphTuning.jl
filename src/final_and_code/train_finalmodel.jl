@@ -36,12 +36,12 @@ function train_final_model(raw_data, create_model::Function;
     # Skip training if max_epochs=0
     if max_epochs == 0
         println("⚠️  max_epochs=0; return only the dataloaders for final model training.")
-        return nothing, nothing, nothing, dl_train, dl_test
+        return nothing, nothing, nothing, dl_train, dl_test, setup.split_indices
     end
 
     # Train and return
     trained_model, stats = _train_final_model!(setup, dl_train, dl_test; max_epochs, patience, print_every)
-    return trained_model, stats, setup.train_stats, dl_train, dl_test
+    return trained_model, stats, setup.train_stats, dl_train, dl_test, setup.split_indices
 end
 
 """
