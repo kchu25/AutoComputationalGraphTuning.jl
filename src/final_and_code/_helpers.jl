@@ -47,8 +47,10 @@ end
 """Compute predictions and gradients w.r.t. code"""
 function _compute_code_gradients(model, code, proc_wrap, inf_layer::Int, predict_position::Int)
     (_, preds), grad = Flux.withgradient(code) do x
-        preds = proc_wrap.predict_from_code(model, x; 
-            layer=inf_layer, apply_nonlinearity=false, predict_position=predict_position)
+        linear_sum_fcn = @ignore model.predict_up_to_final_nonlinearity;
+        preds = linear_sum_fcn(x; predict_position=predict_position)
+        # preds = proc_wrap.predict_from_code(model, x; 
+        #     layer=inf_layer, apply_nonlinearity=false, predict_position=predict_position)
         preds |> sum, preds
     end
     return preds, grad[1]
