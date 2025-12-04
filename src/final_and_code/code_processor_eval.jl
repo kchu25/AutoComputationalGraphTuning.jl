@@ -12,10 +12,10 @@ end
 
 """Compute gyros and predictions for a single batch"""
 function _compute_gyro_and_preds(model, code, proc_wrap, inf_layer::Int, predict_position::Int)
-    preds, gyro = Flux.withgradient(code) do x
+    (_, preds), gyro = Flux.withgradient(code) do x
         preds = proc_wrap.predict_from_code(model, x; 
             layer=inf_layer, apply_nonlinearity=false, predict_position=predict_position)
-        preds
+        preds |> sum, preds # need the first component to be the gradient, but don't need to return it
     end
     return preds, gyro[1]
 end
