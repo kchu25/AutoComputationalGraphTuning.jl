@@ -61,7 +61,7 @@ function _processor_train_step!(processor, opt_state, model, seq, proc_wrap, inf
     preds, grad = _compute_code_gradients(model, code, proc_wrap, inf_layer, predict_position)
     
     loss, grads = Flux.withgradient(processor) do p
-        proc_grad = proc_wrap.process_code(p, code, grad; step=step)
+        proc_grad = p(code, grad; step=step)
         sum(abs2, vec(sum(proc_grad .* code, dims=(1,2))) - preds)
     end
     

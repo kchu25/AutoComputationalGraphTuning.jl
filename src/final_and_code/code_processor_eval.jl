@@ -100,8 +100,10 @@ function evaluate_processor(model, processor, dataloader, proc_wrap, set_name::S
         if isnothing(gyro_shape)
             gyro_shape = size(gyro)
         end
-        
-        proc_gyro = proc_wrap.process_code(processor, code, gyro; training=false)
+
+        processor.training[] = false  # Set processor to eval mode
+
+        proc_gyro = processor(code, gyro)
         
         _accumulate_batch_stats!(stats, code, gyro, proc_gyro, preds, epsilon)
     end
