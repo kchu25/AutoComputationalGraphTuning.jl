@@ -62,9 +62,9 @@ function get_split_indices(data_size::Int;
     val_end = min(val_end, data_size)
     
     # Create splits
-    train_indices = indices[1:train_end]
-    val_indices = indices[train_end+1:val_end]
-    test_indices = indices[val_end+1:end]
+    train_indices = @view indices[1:train_end]
+    val_indices = @view indices[train_end+1:val_end]
+    test_indices = @view indices[val_end+1:end]
     
     return (train=train_indices, val=val_indices, test=test_indices)
 end
