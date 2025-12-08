@@ -43,7 +43,7 @@ function _accumulate_batch_stats!(stats_dict, code, gyro, proc_gyro, preds, epsi
     proc_prod = vec(sum(proc_gyro_code_product, dims=(1,2)))
     
     # Store masks for non-sparse components (using original gyro as reference)
-    gyro_nonsparse_mask = abs.(gyro) .>= epsilon
+    gyro_nonsparse_mask = abs.(proc_gyro) .>= epsilon
     
     # Compute products only for non-sparse gyro components
     gyro_code_prod_nonsparse = gyro_code_product .* gyro_nonsparse_mask
