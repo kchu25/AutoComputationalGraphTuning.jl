@@ -5,12 +5,28 @@ struct ThresholdEvalStats{T<:AbstractFloat}
     r2_processor::T
     sparsity_pct::T  # Percentage of components zeroed out
     avg_nonzero_per_sample::T  # Average number of non-zero components per sample
+    std_nonzero_per_sample::T  # Standard deviation of non-zero components per sample
+    min_nonzero_per_sample::Int  # Minimum non-zero components in any sample
+    max_nonzero_per_sample::Int  # Maximum non-zero components in any sample
+end
+
+function Base.show(io::IO, stats::ThresholdEvalStats)
+    println(io, "ThresholdEvalStats:")
+    println(io, "  Threshold:            ", round(stats.threshold, sigdigits=4))
+    println(io, "  R² Original:          ", round(stats.r2_original, digits=4))
+    println(io, "  R² Processor:         ", round(stats.r2_processor, digits=4))
+    println(io, "  Sparsity:             ", round(stats.sparsity_pct, digits=1), "%")
+    println(io, "  Non-zero per sample:")
+    println(io, "    Mean:               ", round(stats.avg_nonzero_per_sample, digits=1))
+    println(io, "    Std:                ", round(stats.std_nonzero_per_sample, digits=1))
+    println(io, "    Min:                ", stats.min_nonzero_per_sample)
+    print(io, "    Max:                ", stats.max_nonzero_per_sample)
 end
 
 """
 Find optimal threshold for proc_gyro that maximizes sparsity while maintaining R² performance.
 
-Searches for the highest threshold where masking proc_gyro components below threshold
+Searches for the highest threshold where masking code components below threshold
 still maintains acceptable R² on the test set compared to the baseline processor R².
 
 # Arguments
@@ -40,29 +56,20 @@ function find_optimal_threshold(model, processor, dataloader_train, dataloader_t
                                num_candidates::Int=20,
                                predict_position::Int=1) where T<:AbstractFloat
     
-    # First, collect proc_gyro from training set to determine threshold range
-    println("\n=== Collecting proc_gyro statistics from training set ===")
-    all_proc_gyro = T[]
+    # First, collect code magnitudes from training set to determine threshold range
+    println("\n=== Collecting code statistics from training set ===")
+    all_code = T[]
     
     for (seq, _) in dataloader_train
         code = model.code(seq |> gpu)
-        (_, preds), gyro = Flux.withgradient(code) do x
-            linear_sum_fcn = @ignore model.predict_up_to_final_nonlinearity;
-            preds = linear_sum_fcn(x; predict_position=predict_position)
-            preds |> sum, preds
-        end
-        gyro = gyro[1]
         
-        processor.training[] = false
-        proc_gyro = processor(code, gyro)
-        
-        append!(all_proc_gyro, abs.(vec(cpu(proc_gyro))))
+        append!(all_code, abs.(vec(cpu(code))))
     end
     
-    # Determine threshold candidates based on proc_gyro distribution
-    proc_gyro_sorted = sort(all_proc_gyro)
-    min_thresh = quantile(proc_gyro_sorted, 0.5)   # Start from median
-    max_thresh = quantile(proc_gyro_sorted, 0.999) # Up to 99.9th percentile
+    # Determine threshold candidates based on code distribution
+    code_sorted = sort(all_code)
+    min_thresh = quantile(code_sorted, 0.5)   # Start from median
+    max_thresh = quantile(code_sorted, 0.999) # Up to 99.9th percentile
     
     threshold_candidates = T.(exp10.(range(log10(max(min_thresh, 1f-6)), 
                                            log10(max_thresh), 
@@ -107,20 +114,24 @@ function find_optimal_threshold(model, processor, dataloader_train, dataloader_t
     println("R² (original): $(round(best_stats.r2_original, digits=4))")
     println("R² (processor with threshold): $(round(best_stats.r2_processor, digits=4))")
     println("Sparsity: $(round(best_stats.sparsity_pct, digits=1))% of components zeroed out")
-    println("Avg non-zero components per sample: $(round(best_stats.avg_nonzero_per_sample, digits=1))")
+    println("Non-zero components per sample:")
+    println("  Mean: $(round(best_stats.avg_nonzero_per_sample, digits=1))")
+    println("  Std:  $(round(best_stats.std_nonzero_per_sample, digits=1))")
+    println("  Min:  $(best_stats.min_nonzero_per_sample)")
+    println("  Max:  $(best_stats.max_nonzero_per_sample)")
     println("R² drop from baseline: $(round(100*(baseline_stats.r2_processor - best_stats.r2_processor)/baseline_stats.r2_processor, digits=2))%")
     
     return best_stats
 end
 
 """
-Evaluate processor performance with a specific threshold applied to proc_gyro.
+Evaluate processor performance with a specific threshold applied to code.
 
 # Arguments
 - `model`: Trained model
 - `processor`: Trained code processor
 - `dataloader`: DataLoader for evaluation
-- `threshold`: Magnitude threshold for masking proc_gyro components
+- `threshold`: Magnitude threshold for masking code components
 - `predict_position`: Position for prediction
 
 # Returns
@@ -135,12 +146,17 @@ function _evaluate_with_threshold(model, processor, dataloader,
     total_components = 0
     zeroed_components = 0
     num_samples = 0
+    nonzero_counts_per_sample = Int[]
     
     for (seq, _) in dataloader
         code = model.code(seq |> gpu)
         
-        # Compute predictions and gradients
-        (_, preds), gyro = Flux.withgradient(code) do x
+        # Apply threshold to code: zero out components below threshold
+        mask = abs.(code) .>= threshold
+        code_thresholded = code .* mask
+        
+        # Compute predictions and gradients using thresholded code
+        (_, preds), gyro = Flux.withgradient(code_thresholded) do x
             linear_sum_fcn = @ignore model.predict_up_to_final_nonlinearity;
             preds = linear_sum_fcn(x; predict_position=predict_position)
             preds |> sum, preds
@@ -148,20 +164,26 @@ function _evaluate_with_threshold(model, processor, dataloader,
         gyro = gyro[1]
         
         processor.training[] = false
-        proc_gyro = processor(code, gyro)
-        
-        # Apply threshold: zero out components below threshold
-        mask = abs.(proc_gyro) .>= threshold
-        proc_gyro_thresholded = proc_gyro .* mask
+        proc_gyro = processor(code_thresholded, gyro)
         
         # Track sparsity
-        total_components += length(proc_gyro)
+        total_components += length(code)
         zeroed_components += sum(.!mask)
-        num_samples += size(proc_gyro, 4)  # Assuming last dim is batch
+        
+        # Track per-sample non-zero counts
+        batch_size = size(code, 4)
+        num_samples += batch_size
+        components_per_sample = div(length(code), batch_size)
+        
+        # Reshape mask to count per sample
+        mask_reshaped = reshape(mask, components_per_sample, batch_size)
+        for i in 1:batch_size
+            push!(nonzero_counts_per_sample, sum(mask_reshaped[:, i]))
+        end
         
         # Compute products
-        gyro_code_product = gyro .* code
-        proc_gyro_code_product = proc_gyro_thresholded .* code
+        gyro_code_product = gyro .* code_thresholded
+        proc_gyro_code_product = proc_gyro .* code_thresholded
         
         gyro_prod = vec(sum(gyro_code_product, dims=(1,2)))
         proc_prod = vec(sum(proc_gyro_code_product, dims=(1,2)))
@@ -176,9 +198,14 @@ function _evaluate_with_threshold(model, processor, dataloader,
     r2_orig = _compute_r2(preds_collection, gyro_prods_collection)
     r2_proc = _compute_r2(preds_collection, proc_prods_collection)
     
-    # Compute sparsity percentage and average non-zero components
+    # Compute sparsity percentage and statistics
     sparsity_pct = T(100.0 * zeroed_components / total_components)
-    avg_nonzero_per_sample = T((total_components - zeroed_components) / num_samples)
+    avg_nonzero_per_sample = T(mean(nonzero_counts_per_sample))
+    std_nonzero_per_sample = T(std(nonzero_counts_per_sample))
+    min_nonzero = minimum(nonzero_counts_per_sample)
+    max_nonzero = maximum(nonzero_counts_per_sample)
     
-    return ThresholdEvalStats(threshold, r2_orig, r2_proc, sparsity_pct, avg_nonzero_per_sample)
+    return ThresholdEvalStats(threshold, r2_orig, r2_proc, sparsity_pct, 
+                             avg_nonzero_per_sample, std_nonzero_per_sample,
+                             min_nonzero, max_nonzero)
 end

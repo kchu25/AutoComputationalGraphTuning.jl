@@ -4,6 +4,12 @@ struct ProcessorEvalStats{T<:AbstractFloat}
     r2_processor::T
 end
 
+function Base.show(io::IO, stats::ProcessorEvalStats)
+    println(io, "ProcessorEvalStats:")
+    println(io, "  R² Original (gyro·code): ", round(stats.r2_original, digits=4))
+    print(io, "  R² Processor:            ", round(stats.r2_processor, digits=4))
+end
+
 """Compute gyros and predictions for a single batch"""
 function _compute_gyro_and_preds(model, code, predict_position::Int)
     (_, preds), gyro = Flux.withgradient(code) do x
