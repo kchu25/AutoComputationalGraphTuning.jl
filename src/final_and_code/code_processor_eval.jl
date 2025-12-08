@@ -13,7 +13,7 @@ struct ProcessorEvalStats{T<:AbstractFloat}
 end
 
 """Compute gyros and predictions for a single batch"""
-function _compute_gyro_and_preds(model, code, proc_wrap, inf_layer::Int, predict_position::Int)
+function _compute_gyro_and_preds(model, code, predict_position::Int)
     (_, preds), gyro = Flux.withgradient(code) do x
         linear_sum_fcn = @ignore model.predict_up_to_final_nonlinearity;
         preds = linear_sum_fcn(x; predict_position=predict_position)
@@ -86,7 +86,7 @@ Evaluate code processor performance on a dataset.
 # Returns
 `ProcessorEvalStats` containing R² scores and sparsity metrics
 """
-function evaluate_processor(model, processor, dataloader, proc_wrap, set_name::String;
+function evaluate_processor(model, processor, dataloader, set_name::String;
                            epsilon::DEFAULT_FLOAT_TYPE=5f-3,
                            inference_code_layer=nothing,
                            predict_position::Int=1)
@@ -113,7 +113,7 @@ function evaluate_processor(model, processor, dataloader, proc_wrap, set_name::S
     
     for (seq, _) in dataloader
         code = model.code(seq |> gpu)
-        preds, gyro = _compute_gyro_and_preds(model, code, proc_wrap, inf_layer, predict_position)
+        preds, gyro = _compute_gyro_and_preds(model, code, predict_position)
         
         if isnothing(gyro_shape)
             gyro_shape = size(gyro)
