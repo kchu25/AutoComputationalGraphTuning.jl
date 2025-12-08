@@ -38,6 +38,7 @@ include("tune/tuning.jl")
 include("final_and_code/train_finalmodel.jl")
 include("final_and_code/train_code_processor.jl")
 include("final_and_code/code_processor_eval.jl")
+include("final_and_code/gyro_thresh.jl")
 
 export setup_model_and_training
 export TrainingConfig, save_trial_config, load_trial_config, load_best_trial_config, config_to_loss_fcn
