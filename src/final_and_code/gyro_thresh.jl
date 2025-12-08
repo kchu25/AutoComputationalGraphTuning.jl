@@ -12,15 +12,15 @@ end
 
 function Base.show(io::IO, stats::ThresholdEvalStats)
     println(io, "ThresholdEvalStats:")
-    println(io, "  Threshold:            ", round(stats.threshold, sigdigits=4))
-    println(io, "  R² Original:          ", round(stats.r2_original, digits=4))
-    println(io, "  R² Processor:         ", round(stats.r2_processor, digits=4))
-    println(io, "  Sparsity:             ", round(stats.sparsity_pct, digits=1), "%")
+    println(io, "  Threshold:               ", round(stats.threshold, sigdigits=4))
+    println(io, "  R² Original:             ", round(stats.r2_original, digits=4))
+    println(io, "  R² Processor:            ", round(stats.r2_processor, digits=4))
+    println(io, "  Sparsity (% zeroed out): ", round(stats.sparsity_pct, digits=1), "%")
     println(io, "  Non-zero per sample:")
-    println(io, "    Mean:               ", round(stats.avg_nonzero_per_sample, digits=1))
-    println(io, "    Std:                ", round(stats.std_nonzero_per_sample, digits=1))
-    println(io, "    Min:                ", stats.min_nonzero_per_sample)
-    print(io, "    Max:                ", stats.max_nonzero_per_sample)
+    println(io, "    Mean:                  ", round(stats.avg_nonzero_per_sample, digits=1))
+    println(io, "    Std:                   ", round(stats.std_nonzero_per_sample, digits=1))
+    println(io, "    Min:                   ", stats.min_nonzero_per_sample)
+    print(io, "    Max:                   ", stats.max_nonzero_per_sample)
 end
 
 """
