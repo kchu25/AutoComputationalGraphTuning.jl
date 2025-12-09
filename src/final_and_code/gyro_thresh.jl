@@ -34,8 +34,8 @@ end
 """
 Find optimal threshold for proc_gyro that maximizes sparsity while maintaining R² performance.
 
-Searches for the highest threshold that achieves the best R² against actual labels
-on the test set, balancing sparsity and prediction accuracy.
+Searches for the highest threshold where masking proc_gyro·code products below threshold
+still maintains acceptable R² on the test set compared to the baseline processor R².
 
 # Arguments
 - `model`: Trained model
@@ -106,7 +106,6 @@ function find_optimal_threshold(model, processor, dataloader_train, dataloader_t
     println("\n=== Testing thresholds on test set ===")
     best_threshold = T(0)
     best_stats = nothing
-    best_r2_vs_label = T(-Inf)  # Track best R² against label
     
     for thresh in threshold_candidates
         # Evaluate on test set with this threshold
@@ -118,32 +117,24 @@ function find_optimal_threshold(model, processor, dataloader_train, dataloader_t
                 "R² proc vs label: $(round(stats.r2_processor_vs_label, digits=4)), " *
                 "Sparsity: $(round(stats.sparsity_pct, digits=1))%")
         
-        # Keep the threshold that achieves best R² vs label
-        if stats.r2_processor_vs_label > best_r2_vs_label
+        # Keep the highest threshold that maintains acceptable R²
+        if stats.r2_processor >= min_acceptable_r2 && thresh > best_threshold
             best_threshold = thresh
             best_stats = stats
-            best_r2_vs_label = stats.r2_processor_vs_label
         end
     end
     
     if isnothing(best_stats)
-        @warn "No threshold found. Using minimal threshold."
+        @warn "No threshold found that maintains R² within tolerance. Using minimal threshold."
         best_stats = _evaluate_with_threshold(model, processor, dataloader_test, 
                                               minimum(threshold_candidates), predict_position)
     end
     
-    # Compute baseline R² vs label for comparison
-    baseline_r2_vs_label = _evaluate_with_threshold(model, processor, dataloader_test, 
-                                                     T(0), predict_position).r2_processor_vs_label
-    r2_improvement_vs_label = best_stats.r2_processor_vs_label - baseline_r2_vs_label
-    
     println("\n=== Optimal Threshold Found ===")
     println("Threshold: $(round(best_stats.threshold, sigdigits=4))")
-    println("R² (original: gyro * code vs model output): $(round(best_stats.r2_original, digits=4))")
+    println("R² (original): $(round(best_stats.r2_original, digits=4))")
     println("R² (processor with threshold): $(round(best_stats.r2_processor, digits=4))")
     println("R² (processor vs actual label): $(round(best_stats.r2_processor_vs_label, digits=4))")
-    println("  Baseline R² vs label (no threshold): $(round(baseline_r2_vs_label, digits=4))")
-    println("  Change in R² vs label: $(round(r2_improvement_vs_label, sigdigits=3)) ($(r2_improvement_vs_label > 0 ? "+" : "")$(round(100*r2_improvement_vs_label/baseline_r2_vs_label, digits=2))%)")
     println("Sparsity after thresholding: $(round(best_stats.sparsity_pct, digits=1))% of components zeroed out")
     println("Baseline sparsity (no threshold):")
     println("  Original (gyro·code): $(round(best_stats.baseline_gyro_sparsity, digits=1))%")
@@ -154,6 +145,9 @@ function find_optimal_threshold(model, processor, dataloader_train, dataloader_t
     println("  Std:  $(round(best_stats.std_nonzero_per_sample, digits=1))")
     println("  Min:  $(best_stats.min_nonzero_per_sample)")
     println("  Max:  $(best_stats.max_nonzero_per_sample)")
+    
+    r2_change_pct = T(100)*(best_stats.r2_processor - baseline_stats.r2_processor)/baseline_stats.r2_processor
+    println("R² change from baseline: $(r2_change_pct > 0 ? "+" : "")$(round(r2_change_pct, digits=2))%")
     
     return best_stats
 end
