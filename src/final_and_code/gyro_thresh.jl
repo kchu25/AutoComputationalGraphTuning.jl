@@ -113,7 +113,7 @@ function find_optimal_threshold(model, processor, dataloader_train, dataloader_t
         stats = _evaluate_with_threshold(model, processor, dataloader_test, thresh, predict_position)
         
         println("Threshold: $(round(thresh, sigdigits=3)) -> " *
-                "R² orig: $(round(stats.r2_original, digits=4)), " *
+                "R² orig (gyro-code): $(round(stats.r2_original, digits=4)), " *
                 "R² proc: $(round(stats.r2_processor, digits=4)), " *
                 "R² proc vs label: $(round(stats.r2_processor_vs_label, digits=4)), " *
                 "Sparsity: $(round(stats.sparsity_pct, digits=1))%")
@@ -139,7 +139,7 @@ function find_optimal_threshold(model, processor, dataloader_train, dataloader_t
     
     println("\n=== Optimal Threshold Found ===")
     println("Threshold: $(round(best_stats.threshold, sigdigits=4))")
-    println("R² (original): $(round(best_stats.r2_original, digits=4))")
+    println("R² (original: gyro * code vs model output): $(round(best_stats.r2_original, digits=4))")
     println("R² (processor with threshold): $(round(best_stats.r2_processor, digits=4))")
     println("R² (processor vs actual label): $(round(best_stats.r2_processor_vs_label, digits=4))")
     println("  Baseline R² vs label (no threshold): $(round(baseline_r2_vs_label, digits=4))")
