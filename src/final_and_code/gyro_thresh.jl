@@ -26,7 +26,7 @@ end
 """
 Find optimal threshold for proc_gyro that maximizes sparsity while maintaining R² performance.
 
-Searches for the highest threshold where masking code components below threshold
+Searches for the highest threshold where masking proc_gyro·code products below threshold
 still maintains acceptable R² on the test set compared to the baseline processor R².
 
 # Arguments
@@ -56,20 +56,32 @@ function find_optimal_threshold(model, processor, dataloader_train, dataloader_t
                                num_candidates::Int=20,
                                predict_position::Int=1) where T<:AbstractFloat
     
-    # First, collect code magnitudes from training set to determine threshold range
-    println("\n=== Collecting code statistics from training set ===")
-    all_code = T[]
+    # First, collect proc_gyro·code products from training set to determine threshold range
+    println("\n=== Collecting proc_gyro·code product statistics from training set ===")
+    all_proc_gyro_code_products = T[]
     
     for (seq, _) in dataloader_train
         code = model.code(seq |> gpu)
+        (_, preds), gyro = Flux.withgradient(code) do x
+            linear_sum_fcn = @ignore model.predict_up_to_final_nonlinearity;
+            preds = linear_sum_fcn(x; predict_position=predict_position)
+            preds |> sum, preds
+        end
+        gyro = gyro[1]
         
-        append!(all_code, abs.(vec(cpu(code))))
+        processor.training[] = false
+        proc_gyro = processor(code, gyro)
+        
+        # Compute proc_gyro·code products
+        proc_gyro_code_product = proc_gyro .* code
+        
+        append!(all_proc_gyro_code_products, abs.(vec(cpu(proc_gyro_code_product))))
     end
     
-    # Determine threshold candidates based on code distribution
-    code_sorted = sort(all_code)
-    min_thresh = quantile(code_sorted, 0.5)   # Start from median
-    max_thresh = quantile(code_sorted, 0.999) # Up to 99.9th percentile
+    # Determine threshold candidates based on proc_gyro·code product distribution
+    products_sorted = sort(all_proc_gyro_code_products)
+    min_thresh = quantile(products_sorted, 0.5)   # Start from median
+    max_thresh = quantile(products_sorted, 0.999) # Up to 99.9th percentile
     
     threshold_candidates = T.(exp10.(range(log10(max(min_thresh, 1f-6)), 
                                            log10(max_thresh), 
@@ -125,13 +137,13 @@ function find_optimal_threshold(model, processor, dataloader_train, dataloader_t
 end
 
 """
-Evaluate processor performance with a specific threshold applied to code.
+Evaluate processor performance with a specific threshold applied to proc_gyro·code products.
 
 # Arguments
 - `model`: Trained model
 - `processor`: Trained code processor
 - `dataloader`: DataLoader for evaluation
-- `threshold`: Magnitude threshold for masking code components
+- `threshold`: Magnitude threshold for masking proc_gyro·code product components
 - `predict_position`: Position for prediction
 
 # Returns
@@ -151,12 +163,8 @@ function _evaluate_with_threshold(model, processor, dataloader,
     for (seq, _) in dataloader
         code = model.code(seq |> gpu)
         
-        # Apply threshold to code: zero out components below threshold
-        mask = abs.(code) .>= threshold
-        code_thresholded = code .* mask
-        
-        # Compute predictions and gradients using thresholded code
-        (_, preds), gyro = Flux.withgradient(code_thresholded) do x
+        # Compute predictions and gradients
+        (_, preds), gyro = Flux.withgradient(code) do x
             linear_sum_fcn = @ignore model.predict_up_to_final_nonlinearity;
             preds = linear_sum_fcn(x; predict_position=predict_position)
             preds |> sum, preds
@@ -164,16 +172,24 @@ function _evaluate_with_threshold(model, processor, dataloader,
         gyro = gyro[1]
         
         processor.training[] = false
-        proc_gyro = processor(code_thresholded, gyro)
+        proc_gyro = processor(code, gyro)
+        
+        # Compute products
+        gyro_code_product = gyro .* code
+        proc_gyro_code_product = proc_gyro .* code
+        
+        # Apply threshold: zero out product components below threshold
+        mask = abs.(proc_gyro_code_product) .>= threshold
+        proc_gyro_code_product_thresholded = proc_gyro_code_product .* mask
         
         # Track sparsity
-        total_components += length(code)
+        total_components += length(proc_gyro_code_product)
         zeroed_components += sum(.!mask)
         
         # Track per-sample non-zero counts
         batch_size = size(code, 4)
         num_samples += batch_size
-        components_per_sample = div(length(code), batch_size)
+        components_per_sample = div(length(proc_gyro_code_product), batch_size)
         
         # Reshape mask to count per sample
         mask_reshaped = reshape(mask, components_per_sample, batch_size)
@@ -181,12 +197,9 @@ function _evaluate_with_threshold(model, processor, dataloader,
             push!(nonzero_counts_per_sample, sum(mask_reshaped[:, i]))
         end
         
-        # Compute products
-        gyro_code_product = gyro .* code_thresholded
-        proc_gyro_code_product = proc_gyro .* code_thresholded
-        
+        # Sum products to get predictions
         gyro_prod = vec(sum(gyro_code_product, dims=(1,2)))
-        proc_prod = vec(sum(proc_gyro_code_product, dims=(1,2)))
+        proc_prod = vec(sum(proc_gyro_code_product_thresholded, dims=(1,2)))
         
         # Collect
         append!(preds_collection, vec(cpu(preds)))
