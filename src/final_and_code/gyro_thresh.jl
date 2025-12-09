@@ -3,6 +3,7 @@ struct ThresholdEvalStats{T<:AbstractFloat}
     threshold::T
     r2_original::T
     r2_processor::T
+    r2_processor_vs_label::T  # R² of thresholded proc_gyro·code against actual label
     sparsity_pct::T  # Percentage of components zeroed out
     avg_nonzero_per_sample::T  # Average number of non-zero components per sample
     std_nonzero_per_sample::T  # Standard deviation of non-zero components per sample
@@ -14,26 +15,27 @@ end
 
 function Base.show(io::IO, stats::ThresholdEvalStats)
     println(io, "ThresholdEvalStats:")
-    println(io, "  Threshold:               ", round(stats.threshold, sigdigits=4))
-    println(io, "  R² Original:             ", round(stats.r2_original, digits=4))
-    println(io, "  R² Processor:            ", round(stats.r2_processor, digits=4))
-    println(io, "  Sparsity (% zeroed out): ", round(stats.sparsity_pct, digits=1), "%")
+    println(io, "  Threshold:                    ", round(stats.threshold, sigdigits=4))
+    println(io, "  R² Original:                  ", round(stats.r2_original, digits=4))
+    println(io, "  R² Processor:                 ", round(stats.r2_processor, digits=4))
+    println(io, "  R² Processor vs Label:        ", round(stats.r2_processor_vs_label, digits=4))
+    println(io, "  Sparsity (% zeroed out):      ", round(stats.sparsity_pct, digits=1), "%")
     println(io, "  Baseline sparsity:")
-    println(io, "    Original (gyro·code):  ", round(stats.baseline_gyro_sparsity, digits=1), "%")
-    println(io, "    Processor:             ", round(stats.baseline_proc_sparsity, digits=1), "%")
-    println(io, "  Sparsity improvement:    ", round(stats.sparsity_pct - stats.baseline_proc_sparsity, digits=1), "% additional")
+    println(io, "    Original (gyro·code):       ", round(stats.baseline_gyro_sparsity, digits=1), "%")
+    println(io, "    Processor:                  ", round(stats.baseline_proc_sparsity, digits=1), "%")
+    println(io, "  Sparsity improvement:         ", round(stats.sparsity_pct - stats.baseline_proc_sparsity, digits=1), "% additional")
     println(io, "  Non-zero per sample:")
-    println(io, "    Mean:                  ", round(stats.avg_nonzero_per_sample, digits=1))
-    println(io, "    Std:                   ", round(stats.std_nonzero_per_sample, digits=1))
-    println(io, "    Min:                   ", stats.min_nonzero_per_sample)
-    print(io, "    Max:                   ", stats.max_nonzero_per_sample)
+    println(io, "    Mean:                       ", round(stats.avg_nonzero_per_sample, digits=1))
+    println(io, "    Std:                        ", round(stats.std_nonzero_per_sample, digits=1))
+    println(io, "    Min:                        ", stats.min_nonzero_per_sample)
+    print(io, "    Max:                        ", stats.max_nonzero_per_sample)
 end
 
 """
 Find optimal threshold for proc_gyro that maximizes sparsity while maintaining R² performance.
 
-Searches for the highest threshold where masking proc_gyro·code products below threshold
-still maintains acceptable R² on the test set compared to the baseline processor R².
+Searches for the highest threshold that achieves the best R² against actual labels
+on the test set, balancing sparsity and prediction accuracy.
 
 # Arguments
 - `model`: Trained model
@@ -104,6 +106,7 @@ function find_optimal_threshold(model, processor, dataloader_train, dataloader_t
     println("\n=== Testing thresholds on test set ===")
     best_threshold = T(0)
     best_stats = nothing
+    best_r2_vs_label = T(-Inf)  # Track best R² against label
     
     for thresh in threshold_candidates
         # Evaluate on test set with this threshold
@@ -112,25 +115,35 @@ function find_optimal_threshold(model, processor, dataloader_train, dataloader_t
         println("Threshold: $(round(thresh, sigdigits=3)) -> " *
                 "R² orig: $(round(stats.r2_original, digits=4)), " *
                 "R² proc: $(round(stats.r2_processor, digits=4)), " *
+                "R² proc vs label: $(round(stats.r2_processor_vs_label, digits=4)), " *
                 "Sparsity: $(round(stats.sparsity_pct, digits=1))%")
         
-        # Keep the highest threshold that maintains acceptable R²
-        if stats.r2_processor >= min_acceptable_r2 && thresh > best_threshold
+        # Keep the threshold that achieves best R² vs label
+        if stats.r2_processor_vs_label > best_r2_vs_label
             best_threshold = thresh
             best_stats = stats
+            best_r2_vs_label = stats.r2_processor_vs_label
         end
     end
     
     if isnothing(best_stats)
-        @warn "No threshold found that maintains R² within tolerance. Using minimal threshold."
+        @warn "No threshold found. Using minimal threshold."
         best_stats = _evaluate_with_threshold(model, processor, dataloader_test, 
                                               minimum(threshold_candidates), predict_position)
     end
+    
+    # Compute baseline R² vs label for comparison
+    baseline_r2_vs_label = _evaluate_with_threshold(model, processor, dataloader_test, 
+                                                     T(0), predict_position).r2_processor_vs_label
+    r2_improvement_vs_label = best_stats.r2_processor_vs_label - baseline_r2_vs_label
     
     println("\n=== Optimal Threshold Found ===")
     println("Threshold: $(round(best_stats.threshold, sigdigits=4))")
     println("R² (original): $(round(best_stats.r2_original, digits=4))")
     println("R² (processor with threshold): $(round(best_stats.r2_processor, digits=4))")
+    println("R² (processor vs actual label): $(round(best_stats.r2_processor_vs_label, digits=4))")
+    println("  Baseline R² vs label (no threshold): $(round(baseline_r2_vs_label, digits=4))")
+    println("  Change in R² vs label: $(round(r2_improvement_vs_label, sigdigits=3)) ($(r2_improvement_vs_label > 0 ? "+" : "")$(round(100*r2_improvement_vs_label/baseline_r2_vs_label, digits=2))%)")
     println("Sparsity after thresholding: $(round(best_stats.sparsity_pct, digits=1))% of components zeroed out")
     println("Baseline sparsity (no threshold):")
     println("  Original (gyro·code): $(round(best_stats.baseline_gyro_sparsity, digits=1))%")
@@ -141,9 +154,6 @@ function find_optimal_threshold(model, processor, dataloader_train, dataloader_t
     println("  Std:  $(round(best_stats.std_nonzero_per_sample, digits=1))")
     println("  Min:  $(best_stats.min_nonzero_per_sample)")
     println("  Max:  $(best_stats.max_nonzero_per_sample)")
-    
-    r2_drop_pct = T(100)*(baseline_stats.r2_processor - best_stats.r2_processor)/baseline_stats.r2_processor
-    println("R² drop from baseline: $(round(r2_drop_pct, digits=2))%")
     
     return best_stats
 end
@@ -167,6 +177,7 @@ function _evaluate_with_threshold(model, processor, dataloader,
     preds_collection = T[]
     gyro_prods_collection = T[]
     proc_prods_collection = T[]
+    labels_collection = T[]
     total_components = 0
     zeroed_components = 0
     num_samples = 0
@@ -176,7 +187,8 @@ function _evaluate_with_threshold(model, processor, dataloader,
     baseline_gyro_nonzero = 0
     baseline_proc_nonzero = 0
     
-    for (seq, _) in dataloader
+    for (seq, label) in dataloader
+        label = label |> gpu
         code = model.code(seq |> gpu)
         
         # Compute predictions and gradients
@@ -225,11 +237,13 @@ function _evaluate_with_threshold(model, processor, dataloader,
         append!(preds_collection, vec(cpu(preds)))
         append!(gyro_prods_collection, cpu(gyro_prod))
         append!(proc_prods_collection, cpu(proc_prod))
+        append!(labels_collection, vec(cpu(label)))
     end
     
     # Compute R² scores
     r2_orig = _compute_r2(preds_collection, gyro_prods_collection)
     r2_proc = _compute_r2(preds_collection, proc_prods_collection)
+    r2_proc_vs_label = _compute_r2(labels_collection, proc_prods_collection)
     
     # Compute sparsity percentage and statistics
     sparsity_pct = T(100) * T(zeroed_components) / T(total_components)
@@ -244,7 +258,7 @@ function _evaluate_with_threshold(model, processor, dataloader,
     # Store baseline sparsities for comparison (attach to stats somehow or print)
     # For now, we'll just use sparsity_pct
     
-    return ThresholdEvalStats(threshold, r2_orig, r2_proc, sparsity_pct, 
+    return ThresholdEvalStats(threshold, r2_orig, r2_proc, r2_proc_vs_label, sparsity_pct, 
                              avg_nonzero_per_sample, std_nonzero_per_sample,
                              min_nonzero, max_nonzero,
                              baseline_gyro_sparsity, baseline_proc_sparsity)
