@@ -91,7 +91,7 @@ version = "1.1.2"
 deps = ["CSV", "CUDA", "ChainRulesCore", "DataFrames", "Dates", "Flux", "JSON3", "Random", "RealLabelNormalization", "Statistics", "StatsBase", "StructTypes", "Zygote", "cuDNN"]
 path = "."
 uuid = "9895cdd9-2e9e-4374-a2b7-90eb9a5a3bcd"
-version = "0.0.4"
+version = "0.0.5"
 
 [[deps.BFloat16s]]
 deps = ["LinearAlgebra", "Printf", "Random"]
