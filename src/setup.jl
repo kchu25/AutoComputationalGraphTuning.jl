@@ -36,7 +36,9 @@ function setup_training(data, create_model, batch_size; combine_train_val=false,
             m = create_model(Xdim, Ydim, batch_size; rng=model_rng, use_cuda=use_cuda, model_kwargs...) |> FLUX_MODEL_FLOAT_FCN
             isnothing(m) && return nothing
             (m, Flux.setup(Flux.AdaBelief(), m), Ydim)
-        catch
+        catch e
+            println("⚠️  Failed to create model: $e")
+            println(stacktrace(catch_backtrace()))
             println("⚠️  Failed to create model")
             return nothing
         end
