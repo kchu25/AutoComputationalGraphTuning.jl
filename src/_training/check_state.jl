@@ -13,7 +13,7 @@ function check_early_stopping!(val_loss, best_val_loss, epochs_without_improveme
         epochs_without_improvement += 1
         println("⚠ No improvement for $epochs_without_improvement epoch(s)")
         
-        should_stop = epochs_without_improvement >= patience && aggregated_r2 ≤ 0
+        should_stop = epochs_without_improvement >= patience
         if should_stop
             println("Early stopping triggered!")
             println("Best validation loss: $(round(best_val_loss, digits=6)), Best R² = $(round(best_r2, digits=4))")
