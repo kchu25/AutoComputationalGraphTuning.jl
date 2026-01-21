@@ -1,6 +1,7 @@
 # Core setup: split data, normalize, optionally create model
 function setup_training(data, create_model, batch_size; combine_train_val=false, 
                        normalize_Y=true, normalization_method=:zscore, normalization_mode=:rowwise,
+                       clip_quantiles=(0.00001, 0.99999),
                        rng=Random.GLOBAL_RNG, use_cuda=true, loss_fcn=(loss=Flux.mse, agg=StatsBase.mean),
                        model_kwargs...)
     model_rng, split_rng = MersenneTwister(rand(rng, UInt)), MersenneTwister(rand(rng, UInt))
@@ -11,7 +12,7 @@ function setup_training(data, create_model, batch_size; combine_train_val=false,
         X = cat(splits.train.X, splits.val.X, dims=ndims(splits.train.X))
         Y = cat(splits.train.Y, splits.val.Y, dims=ndims(splits.train.Y))
         train_stats, Y_norm, test_Y = if normalize_Y
-            stats = compute_normalization_stats(Y; method=normalization_method, mode=normalization_mode)
+            stats = compute_normalization_stats(Y; method=normalization_method, mode=normalization_mode, clip_quantiles=clip_quantiles)
             (stats, apply_normalization(Y, stats), apply_normalization(splits.test.Y, stats))
         else
             (nothing, Y, splits.test.Y)
@@ -19,7 +20,7 @@ function setup_training(data, create_model, batch_size; combine_train_val=false,
         processed_data = PreprocessedData(DataSplit(X, Y_norm, train_stats), nothing, DataSplit(splits.test.X, test_Y))
     else
         train_stats, train_Y, val_Y, test_Y = if normalize_Y
-            stats = compute_normalization_stats(splits.train.Y; method=normalization_method, mode=normalization_mode)
+            stats = compute_normalization_stats(splits.train.Y; method=normalization_method, mode=normalization_mode, clip_quantiles=clip_quantiles)
             (stats, apply_normalization(splits.train.Y, stats), 
              apply_normalization(splits.val.Y, stats), apply_normalization(splits.test.Y, stats))
         else
