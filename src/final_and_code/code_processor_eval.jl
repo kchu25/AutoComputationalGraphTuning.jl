@@ -20,10 +20,20 @@ function _compute_gyro_and_preds(model, code, predict_position::Int)
     return preds, gyro[1]
 end
 
-"""Compute R² coefficient"""
+"""Compute R² coefficient, excluding NaN values"""
 function _compute_r2(y_true::AbstractVector{T}, y_pred::AbstractVector{T}) where T<:AbstractFloat
-    ss_res = sum((y_true .- y_pred).^2)
-    ss_tot = sum((y_true .- mean(y_true)).^2)
+    # Create mask for valid (non-NaN) values in both arrays
+    valid_mask = .!isnan.(y_true) .& .!isnan.(y_pred)
+    y_true_valid = y_true[valid_mask]
+    y_pred_valid = y_pred[valid_mask]
+    
+    # Return NaN if no valid values
+    if isempty(y_true_valid)
+        return T(NaN)
+    end
+    
+    ss_res = sum((y_true_valid .- y_pred_valid).^2)
+    ss_tot = sum((y_true_valid .- mean(y_true_valid)).^2)
     return T(1) - ss_res / ss_tot
 end
 
