@@ -51,5 +51,5 @@ function tune_hyperparameters(raw_data, create_model::Function;
     # Print summary and return
     best_info = _print_summary(results, save_file, best_model, best_seed, best_r2, best_batch)
     
-    results, best_model, best_info
+    return results, best_model, best_info
 end
