@@ -18,6 +18,8 @@ function setup_training(data, create_model, batch_size; combine_train_val=false,
             (nothing, Y, splits.test.Y)
         end
         processed_data = PreprocessedData(DataSplit(X, Y_norm, train_stats), nothing, DataSplit(splits.test.X, test_Y))
+        # Merge train and val indices so split_indices.train reflects the combined set
+        splits_indices = (train=vcat(splits_indices.train, splits_indices.val), val=Int[], test=splits_indices.test)
     else
         train_stats, train_Y, val_Y, test_Y = if normalize_Y
             stats = compute_normalization_stats(splits.train.Y; method=normalization_method, mode=normalization_mode, clip_quantiles=clip_quantiles)

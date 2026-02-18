@@ -23,8 +23,20 @@ function _create_final_dataloaders(setup, batch_size, seed)
     dl_train = Flux.DataLoader((setup.processed_data.train.tensor, setup.processed_data.train.labels),
                                batchsize=batch_size, shuffle=true, partial=false, rng=MersenneTwister(seed))
     dl_test = Flux.DataLoader((setup.processed_data.test.tensor, setup.processed_data.test.labels),
-                              batchsize=batch_size, shuffle=false, partial=false)
+                              batchsize=batch_size, shuffle=false, partial=true)
     return dl_train, dl_test
+end
+
+"""
+Create eval dataloaders with no shuffling and partial=true so every sample is included
+and order matches split_indices. Returns: (dl_train_eval, dl_test_eval)
+"""
+function _create_eval_dataloaders(setup, batch_size)
+    dl_train_eval = Flux.DataLoader((setup.processed_data.train.tensor, setup.processed_data.train.labels),
+                                    batchsize=batch_size, shuffle=false, partial=true)
+    dl_test_eval  = Flux.DataLoader((setup.processed_data.test.tensor, setup.processed_data.test.labels),
+                                    batchsize=batch_size, shuffle=false, partial=true)
+    return dl_train_eval, dl_test_eval
 end
 
 """Train final model and load best weights. Returns: (trained_model, stats)"""
