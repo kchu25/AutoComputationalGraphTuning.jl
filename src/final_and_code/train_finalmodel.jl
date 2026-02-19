@@ -51,13 +51,20 @@ Train final model from saved config (e.g., best trial from tuning).
 # Returns
 `(model, stats, train_stats, dl_train, dl_test)`
 """
-function train_final_model_from_config(raw_data, create_model::Function, config::TrainingConfig; loss_fcn=(loss=Flux.mse, agg=StatsBase.mean), 
-                                       max_epochs=50, patience=10, print_every=100, model_kwargs...)
+function train_final_model_from_config(raw_data, create_model::Function, config::TrainingConfig, trc; max_epochs=50, patience=10, print_every=100, model_kwargs...)
     println("🎯 Training from config (seed=$(config.seed))...")
-    train_final_model(raw_data, create_model; seed=config.seed, max_epochs, patience, print_every,
+
+    loss_fcn = trc.loss_fcn;
+    seed = trc.seed;
+    normalization_method = trc.normalization_method;
+
+    train_final_model(raw_data, create_model; 
+        seed=seed, max_epochs, patience, print_every,
         randomize_batchsize=config.randomize_batchsize, 
         normalize_Y=config.normalize_Y,
-        normalization_method=config.normalization_method, normalization_mode=config.normalization_mode,
-        use_cuda=config.use_cuda, loss_fcn=loss_fcn, model_kwargs...)
+        normalization_method=normalization_method, 
+        normalization_mode=config.normalization_mode,
+        use_cuda=config.use_cuda, loss_fcn=loss_fcn, 
+        model_kwargs...)
 end
 
