@@ -120,16 +120,16 @@ function load_best_trial_config(save_folder::String)
     return load_trial_config(json_file)
 end
 
-"""
-    config_to_loss_fcn(config::TrainingConfig)
+# """
+#     config_to_loss_fcn(config::TrainingConfig)
 
-Convert a TrainingConfig's loss function strings back to a named tuple.
-Assumes the loss function and aggregation are from Flux/StatsBase.
-"""
-function config_to_loss_fcn(config::TrainingConfig)
-    # Parse loss function
-    loss = eval(Meta.parse(config.loss_function))
-    agg = eval(Meta.parse(config.aggregation))
+# Convert a TrainingConfig's loss function strings back to a named tuple.
+# Assumes the loss function and aggregation are from Flux/StatsBase.
+# """
+# function config_to_loss_fcn(config::TrainingConfig)
+#     # Parse loss function
+#     loss = eval(Meta.parse(config.loss_function))
+#     agg = eval(Meta.parse(config.aggregation))
     
-    return (loss=loss, agg=agg)
-end
+#     return (loss=loss, agg=agg)
+# end
