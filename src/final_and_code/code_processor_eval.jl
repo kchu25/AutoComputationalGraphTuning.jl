@@ -10,15 +10,16 @@ function Base.show(io::IO, stats::ProcessorEvalStats)
     print(io, "  R² Processor:            ", round(stats.r2_processor, digits=4))
 end
 
-"""Compute gyros and predictions for a single batch"""
-function _compute_gyro_and_preds(model, code, predict_position::Int)
-    (_, preds), gyro = Flux.withgradient(code) do x
-        linear_sum_fcn = @ignore model.predict_up_to_final_nonlinearity;
-        preds = linear_sum_fcn(x; predict_position=predict_position)
-        preds |> sum, preds # need the first component to be the gradient, but don't need to return it
+"""Compute code gradient and linear (pre-activation) output for a single batch"""
+function _compute_code_gradient_and_linear_output(model, code, predict_position::Int)
+    (_, linear_output), code_gradient = Flux.withgradient(code) do x
+        linear_sum_fcn = @ignore model.predict_up_to_final_nonlinearity
+        linear_output = linear_sum_fcn(x; predict_position=predict_position)
+        linear_output |> sum, linear_output  # need the first component to be the gradient, but don't need to return it
     end
-    return preds, gyro[1]
+    return linear_output, code_gradient[1]
 end
+
 
 """Compute R² coefficient, excluding NaN values"""
 function _compute_r2(y_true::AbstractVector{T}, y_pred::AbstractVector{T}) where T<:AbstractFloat
@@ -63,7 +64,7 @@ function evaluate_processor(model, processor, dataloader, set_name::String;
     
     # Collect predictions and products
     labels_collection = Vector{T}[]
-    preds_collection = Vector{T}[]
+    linear_output_collection = Vector{T}[]
     gyro_prods_collection = Vector{T}[]
     proc_prods_collection = Vector{T}[]
     
@@ -75,7 +76,7 @@ function evaluate_processor(model, processor, dataloader, set_name::String;
         end
 
         code = model.code(seq |> gpu)
-        preds, gyro = _compute_gyro_and_preds(model, code, predict_position)
+        linear_outputs, gyro = _compute_code_gradient_and_linear_output(model, code, predict_position)
 
         processor.training[] = false
         proc_gyro = processor(code, gyro)
@@ -88,24 +89,30 @@ function evaluate_processor(model, processor, dataloader, set_name::String;
         proc_prod = vec(sum(proc_gyro_code_product, dims=(1,2)))
         
         # Collect
-        push!(preds_collection, vec(cpu(preds)))
+        push!(linear_output_collection, vec(cpu(linear_outputs)))
         push!(gyro_prods_collection, cpu(gyro_prod))
         push!(proc_prods_collection, cpu(proc_prod))
     end
     
     # Concatenate
     labels_all = vcat(labels_collection...)
-    preds_all = vcat(preds_collection...)
-    gyro_prods = vcat(gyro_prods_collection...)
-    proc_prods = vcat(proc_prods_collection...)
+    model_predictions = 
+        model.final_nonlinearity.(vcat(linear_output_collection...))
+    gyro_prods_predictions = 
+        model.final_nonlinearity.(vcat(gyro_prods_collection...))
+    proc_prods_predictions = 
+        model.final_nonlinearity.(vcat(proc_prods_collection...))
     
-    pts = (labels=labels_all, predictions=preds_all, grad_prod=gyro_prods, proc_prod=proc_prods)
+    pts = (labels=labels_all, 
+           predictions=model_predictions, 
+           grad_prod=gyro_prods_predictions, 
+           proc_prod=proc_prods_predictions)
 
     # Compute R² scores
-    r2_orig = _compute_r2(preds_all, gyro_prods)
-    r2_proc = _compute_r2(preds_all, proc_prods)
-    r2_model_vs_labels = _compute_r2(labels_all, preds_all)
-    r2_model_vs_proc = _compute_r2(labels_all, proc_prods)
+    r2_orig = _compute_r2(model_predictions, gyro_prods_predictions)
+    r2_proc = _compute_r2(model_predictions, proc_prods_predictions)
+    r2_model_vs_labels = _compute_r2(labels_all, model_predictions)
+    r2_model_vs_proc = _compute_r2(labels_all, proc_prods_predictions)
     
     # Print results
     println("\n=== $set_name Set ===")
