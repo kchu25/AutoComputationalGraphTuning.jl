@@ -1,6 +1,8 @@
 # Breaking Changes
 
-## Loss Function Naming (Clarity Update)
+## v0.2.0 Changes
+
+### Loss Function Naming (Clarity Update)
 
 To reduce confusion about loss function types, parameter names have been clarified:
 
@@ -116,3 +118,26 @@ The new names clearly distinguish:
 - **`compiled_loss`** = the result (ready-to-use function)
 
 This prevents the confusion that arose from asking "wait, does `loss_fcn` take 2 or 3 arguments?"
+
+---
+
+## Code Processor Evaluation Naming (Clarity Update)
+
+Variable and function names in gradient computation have been clarified for consistency:
+
+### Changes
+
+| Old Name | New Name | What It Is |
+|---|---|---|
+| `_compute_gyro_and_preds()` | **`_compute_code_gradient_and_linear_output()`** | Computes code gradient and linear pre-activation output |
+| `preds` (variable) | **`linear_output`** | Linear (pre-activation) output from model |
+| `gyro` (variable) | **`code_gradient`** | Gradient of code w.r.t. loss |
+
+### Summary
+
+The renaming clarifies that:
+- **`linear_output`** = pre-activation predictions (before `model.final_nonlinearity`)
+- **`code_gradient`** = ∂loss/∂code (actual gradient tensor)
+- The function now clearly states it computes **both** code gradient **and** linear output
+
+This follows the broader package philosophy of clear, self-documenting names.
