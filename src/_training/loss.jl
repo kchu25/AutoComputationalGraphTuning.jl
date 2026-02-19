@@ -34,35 +34,38 @@ function masked_loss(predictions, targets, mask, loss_fcn, agg=StatsBase.mean)
     return loss_fcn(valid_predictions, valid_targets; agg=agg)
 end
 
-# Default loss configuration
-const DEFAULT_LOSS_CONFIG = (loss=Flux.mse, agg=StatsBase.mean)
+# Default loss specification (user-facing config)
+const DEFAULT_LOSS_SPEC = (loss=Flux.mse, agg=StatsBase.mean)
 
 """
-    create_masked_loss_function(loss_config)
+    compile_loss(loss_spec) -> compiled_loss(predictions, targets, mask)
 
-Create a masked loss function from a configuration named tuple.
+Compile a loss specification (NamedTuple) into a callable 3-arg loss function.
 
 # Arguments
-- `loss_config`: Named tuple with `loss` and `agg` fields: `(loss=loss_function, agg=aggregation_function)`
+- `loss_spec`: Named tuple `(loss=loss_function, agg=aggregation_function)`
 
 # Returns
-- Function that computes masked loss: `f(predictions, targets, mask)`
+- `compiled_loss`: Function `(predictions, targets, mask) -> scalar`
 
 # Examples
 ```julia
-# Create MSE loss with mean aggregation
-loss_fn = create_masked_loss_function((loss=Flux.mse, agg=StatsBase.mean))
+# Compile MSE loss with mean aggregation
+compiled = compile_loss((loss=Flux.mse, agg=StatsBase.mean))
 
-# Create MAE loss with sum aggregation
-loss_fn = create_masked_loss_function((loss=Flux.mae, agg=sum))
+# Compile MAE loss with sum aggregation
+compiled = compile_loss((loss=Flux.mae, agg=sum))
 
 # Use in training
-loss = loss_fn(predictions, targets, mask)
+loss = compiled(predictions, targets, mask)
 ```
 """
-function create_masked_loss_function(loss_config::NamedTuple{(:loss, :agg), <:Tuple{<:Function, <:Function}})
-    return (predictions, targets, mask) -> masked_loss(predictions, targets, mask, loss_config.loss, loss_config.agg)
+function compile_loss(loss_spec::NamedTuple{(:loss, :agg), <:Tuple{<:Function, <:Function}})
+    return (predictions, targets, mask) -> masked_loss(predictions, targets, mask, loss_spec.loss, loss_spec.agg)
 end
+
+# Backward compatibility alias
+const create_masked_loss_function = compile_loss
 
 # Convenience function for backward compatibility
 function masked_mse(predictions, targets, mask)

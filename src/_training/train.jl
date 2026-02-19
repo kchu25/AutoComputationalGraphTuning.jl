@@ -98,18 +98,21 @@ end
 
 # Use it
 train_model(model, opt, train_dl, val_dl, ydim; compute_loss=my_loss)
+
+# Or use a compiled loss (3-arg: preds, labels, mask) directly:
+train_model(model, opt, train_dl, val_dl, ydim; compiled_loss=my_compiled_loss)
 ```
 """
 function train_model(model, opt_state, train_dl, val_dl, output_dim;
                      max_epochs=50, patience=10, min_delta=1e-4, print_every=100,
-                     test_set=false, compute_loss=nothing, loss_fcn=masked_mse)
+                     test_set=false, compute_loss=nothing, compiled_loss=masked_mse)
     
-    # Backward compatibility: convert old loss_fcn to new compute_loss
-    if isnothing(compute_loss) && !isnothing(loss_fcn)
+    # Build compute_loss from compiled_loss if not provided directly
+    if isnothing(compute_loss) && !isnothing(compiled_loss)
         compute_loss = (m, x, y, mask) -> begin
             preds = m(x)
             preds = preds isa Tuple ? preds[1] : preds  # Handle tuple outputs
-            (loss_fcn(preds, y, mask), Dict(:valid_count => sum(mask)))
+            (compiled_loss(preds, y, mask), Dict(:valid_count => sum(mask)))
         end
     end
     

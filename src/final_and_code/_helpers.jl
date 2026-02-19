@@ -5,14 +5,14 @@ function _prepare_final_model_setup(raw_data, create_model::Function;
                                     seed=1, randomize_batchsize=true,
                                     normalize_Y=true, normalization_method=:zscore,
                                     normalization_mode=:rowwise, use_cuda=true,
-                                    loss_fcn=(loss=Flux.mse, agg=StatsBase.mean),
+                                    loss_spec=(loss=Flux.mse, agg=StatsBase.mean),
                                     model_kwargs...)
     rng = set_reproducible_seeds!(seed)
     batch_size = randomize_batchsize ? rand(rng, BATCH_SIZE_RANGE) : DEFAULT_BATCH_SIZE
     
     setup = setup_training(raw_data, create_model, batch_size; combine_train_val=true,
                           normalize_Y, normalization_method, normalization_mode, rng, 
-                          use_cuda, loss_fcn, model_kwargs...)
+                          use_cuda, loss_spec, model_kwargs...)
     isnothing(setup) && error("Invalid hyperparameters for final model training")
     
     return setup, batch_size
@@ -43,7 +43,7 @@ end
 function _train_final_model!(setup, dl_train, dl_test; max_epochs=50, patience=10, print_every=100)
     println("🎯 Training final model (train+val combined)...")
     best_state, stats = train_model(setup.model, setup.opt_state, dl_train, dl_test, setup.Ydim;
-                                    max_epochs, patience, print_every, test_set=true, loss_fcn=setup.loss_fcn)
+                                    max_epochs, patience, print_every, test_set=true, compiled_loss=setup.compiled_loss)
     
     Flux.loadmodel!(setup.model_clone, best_state)
     return setup.model_clone, stats

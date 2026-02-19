@@ -13,7 +13,7 @@ function tune_hyperparameters(raw_data, create_model::Function;
                               trial_number_start=1, n_trials=100,
                               normalize_Y=true, normalization_method=:zscore, normalization_mode=:rowwise,
                               print_every=100, save_folder=nothing, use_cuda=true,
-                              loss_fcn=(loss=Flux.mse, agg=StatsBase.mean), model_kwargs...)
+                              loss_spec=(loss=Flux.mse, agg=StatsBase.mean), model_kwargs...)
     
     results = DataFrame(seed=Int[], best_r2=DEFAULT_FLOAT_TYPE[], val_loss=DEFAULT_FLOAT_TYPE[], num_params=Int[])
     best_r2, best_model, best_seed, best_batch = -Inf, nothing, nothing, nothing
@@ -23,7 +23,7 @@ function tune_hyperparameters(raw_data, create_model::Function;
         # Run trial
         result = _run_trial(trial, raw_data, create_model, randomize_batchsize,
                            normalize_Y, normalization_method, normalization_mode,
-                           use_cuda, loss_fcn, max_epochs, patience, print_every, model_kwargs)
+                           use_cuda, loss_spec, max_epochs, patience, print_every, model_kwargs)
         
         isnothing(result) && continue
         
@@ -33,7 +33,7 @@ function tune_hyperparameters(raw_data, create_model::Function;
         # Save trial config
         !isnothing(save_folder) && _save_trial_config(trial, result.batch_size, normalize_Y, 
                                                        normalization_method, normalization_mode, 
-                                                       use_cuda, randomize_batchsize, loss_fcn, 
+                                                       use_cuda, randomize_batchsize, loss_spec, 
                                                        result.r2, result.val_loss, save_folder)
         
         # Update best model

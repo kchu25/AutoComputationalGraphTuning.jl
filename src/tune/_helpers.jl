@@ -25,7 +25,7 @@ Run a single hyperparameter tuning trial.
 """
 function _run_trial(trial, raw_data, create_model, randomize_batchsize, 
                     normalize_Y, normalization_method, normalization_mode,
-                    use_cuda, loss_fcn, max_epochs, patience, print_every, model_kwargs)
+                    use_cuda, loss_spec, max_epochs, patience, print_every, model_kwargs)
     
     println("🔍 Trial $trial (seed: $trial)")
     
@@ -34,7 +34,7 @@ function _run_trial(trial, raw_data, create_model, randomize_batchsize,
     
     setup = setup_training(raw_data, create_model, batch_size;
                           normalize_Y, normalization_method, normalization_mode, 
-                          rng, use_cuda, loss_fcn, model_kwargs...)
+                          rng, use_cuda, loss_spec, model_kwargs...)
     
     if isnothing(setup)
         println("  ❌ Invalid setup, skipping...")
@@ -45,7 +45,7 @@ function _run_trial(trial, raw_data, create_model, randomize_batchsize,
                                                rng=MersenneTwister(rand(Random.GLOBAL_RNG, 1:typemax(Int))))
     
     model_state, stats = train_model(setup.model, setup.opt_state, dl_train, dl_val, setup.Ydim;
-                                     max_epochs, patience, print_every, loss_fcn=setup.loss_fcn)
+                                     max_epochs, patience, print_every, compiled_loss=setup.compiled_loss)
     
     r2, loss = stats[:best_r2], stats[:best_val_loss]
     num_params = sum(length, Flux.trainables(setup.model))
@@ -57,7 +57,7 @@ end
 """Save trial configuration to JSON file."""
 function _save_trial_config(trial, batch_size, normalize_Y, normalization_method, 
                            normalization_mode, use_cuda, randomize_batchsize, 
-                           loss_fcn, r2, loss, save_folder)
+                           loss_spec, r2, loss, save_folder)
     config = TrainingConfig(
         seed=trial,
         batch_size=batch_size,
@@ -66,8 +66,8 @@ function _save_trial_config(trial, batch_size, normalize_Y, normalization_method
         normalization_mode=normalization_mode,
         use_cuda=use_cuda,
         randomize_batchsize=randomize_batchsize,
-        loss_function=get_function_name(loss_fcn.loss),
-        aggregation=get_function_name(loss_fcn.agg),
+        loss_function=get_function_name(loss_spec.loss),
+        aggregation=get_function_name(loss_spec.agg),
         best_r2=r2,
         val_loss=loss
     )

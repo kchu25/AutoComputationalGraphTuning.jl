@@ -41,7 +41,8 @@ include("final_and_code/code_processor_eval.jl")
 include("final_and_code/gyro_thresh.jl")
 
 export setup_model_and_training
-export TrainingConfig, save_trial_config, load_trial_config, load_best_trial_config, config_to_loss_fcn
+export TrainingConfig, save_trial_config, load_trial_config, load_best_trial_config
+export compile_loss, create_masked_loss_function  # create_masked_loss_function is a backward compat alias
 export train_final_model, train_final_model_from_config
 export tune_hyperparameters
 export finetune_model, finetune_model_from_config

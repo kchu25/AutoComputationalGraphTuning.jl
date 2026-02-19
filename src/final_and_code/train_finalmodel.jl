@@ -8,7 +8,7 @@ Train final model using combined train+val data, evaluate on test set.
 - `create_model`: Function to create the model
 - `seed`, `max_epochs`, `patience`, `print_every`: Training hyperparameters
 - `randomize_batchsize`, `normalize_Y`, `normalization_method`, `normalization_mode`: Data config
-- `use_cuda`, `loss_fcn`: Compute settings
+- `use_cuda`, `loss_spec`: Compute settings
 - `model_kwargs...`: Additional model arguments
 
 # Returns
@@ -25,13 +25,13 @@ function train_final_model(raw_data, create_model::Function;
                           randomize_batchsize=true, normalize_Y=true,
                           normalization_method=:zscore, normalization_mode=:rowwise,
                           use_cuda=true, 
-                          loss_fcn=(loss=Flux.mse, agg=StatsBase.mean),
+                          loss_spec=(loss=Flux.mse, agg=StatsBase.mean),
                           model_kwargs...)
     
     # Setup and create dataloaders
     setup, batch_size = _prepare_final_model_setup(raw_data, create_model; seed, randomize_batchsize,
                                                     normalize_Y, normalization_method, normalization_mode,
-                                                    use_cuda, loss_fcn, model_kwargs...)
+                                                    use_cuda, loss_spec, model_kwargs...)
     dl_train, dl_test = _create_final_dataloaders(setup, batch_size, seed)
     
     # Skip training if max_epochs=0
@@ -54,7 +54,7 @@ Train final model from saved config (e.g., best trial from tuning).
 function train_final_model_from_config(raw_data, create_model::Function, config::TrainingConfig, trc; max_epochs=50, patience=10, print_every=100, model_kwargs...)
     println("🎯 Training from config (seed=$(config.seed))...")
 
-    loss_fcn = trc.loss_fcn;
+    loss_spec = trc.loss_spec;
     seed = trc.seed;
     normalization_method = trc.normalization_method;
 
@@ -64,7 +64,7 @@ function train_final_model_from_config(raw_data, create_model::Function, config:
         normalize_Y=config.normalize_Y,
         normalization_method=normalization_method, 
         normalization_mode=config.normalization_mode,
-        use_cuda=config.use_cuda, loss_fcn=loss_fcn, 
+        use_cuda=config.use_cuda, loss_spec=loss_spec, 
         model_kwargs...)
 end
 

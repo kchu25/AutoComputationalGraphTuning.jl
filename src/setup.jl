@@ -2,7 +2,7 @@
 function setup_training(data, create_model, batch_size; combine_train_val=false, 
                        normalize_Y=true, normalization_method=:zscore, normalization_mode=:rowwise,
                        clip_quantiles=(0.00001, 0.99999),
-                       rng=Random.GLOBAL_RNG, use_cuda=true, loss_fcn=(loss=Flux.mse, agg=StatsBase.mean),
+                       rng=Random.GLOBAL_RNG, use_cuda=true, loss_spec=(loss=Flux.mse, agg=StatsBase.mean),
                        model_kwargs...)
     model_rng, split_rng = MersenneTwister(rand(rng, UInt)), MersenneTwister(rand(rng, UInt))
     splits, splits_indices = train_val_test_split(data; _shuffle=true, rng=split_rng)
@@ -51,7 +51,7 @@ function setup_training(data, create_model, batch_size; combine_train_val=false,
     
     (model=model, opt_state=opt_state, processed_data=processed_data, Ydim=Ydim, batch_size=batch_size,
      model_clone=isnothing(model) ? nothing : deepcopy(model), train_stats=train_stats,
-     loss_fcn=create_masked_loss_function(loss_fcn), split_indices=splits_indices)
+     compiled_loss=compile_loss(loss_spec), split_indices=splits_indices)
 end
 
 # Backward compatibility wrappers
