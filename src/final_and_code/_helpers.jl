@@ -21,7 +21,7 @@ end
 """Create dataloaders for final model training. Returns: (dl_train, dl_test)"""
 function _create_final_dataloaders(setup, batch_size, seed)
     dl_train = Flux.DataLoader((setup.processed_data.train.tensor, setup.processed_data.train.labels),
-                               batchsize=batch_size, shuffle=true, partial=false, rng=MersenneTwister(seed))
+                               batchsize=batch_size, shuffle=true, partial=true, rng=MersenneTwister(seed))
     dl_test = Flux.DataLoader((setup.processed_data.test.tensor, setup.processed_data.test.labels),
                               batchsize=batch_size, shuffle=false, partial=true)
     return dl_train, dl_test
