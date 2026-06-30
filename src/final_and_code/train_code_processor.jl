@@ -33,10 +33,10 @@ function train_code_processor(model, dataloader, proc_wrap;
     processor, opt_state = _init_processor(proc_wrap, model.hp, use_hard_mask, seed)
     
     # Print header
-    println("=" ^ 60)
-    println("🔧 Training code processor (arch: $(proc_wrap.arch_type), use_hard_mask: $use_hard_mask)")
-    println("Seed: $seed, Epochs: $max_epochs")
-    println("=" ^ 60)
+    vprintln(VERBOSITY_NORMAL, "=" ^ 60)
+    vprintln(VERBOSITY_NORMAL, "🔧 Training code processor (arch: $(proc_wrap.arch_type), use_hard_mask: $use_hard_mask)")
+    vprintln(VERBOSITY_NORMAL, "Seed: $seed, Epochs: $max_epochs")
+    vprintln(VERBOSITY_NORMAL, "=" ^ 60)
     
     # Training loop
     step = Ref(0)
@@ -46,14 +46,14 @@ function train_code_processor(model, dataloader, proc_wrap;
         avg_loss = _train_processor_epoch!(processor, opt_state, model, dataloader, proc_wrap,
                                           inf_layer, predict_position, step)
         push!(loss_history, avg_loss)
-        println("Epoch $epoch: Loss = $(round(avg_loss, digits=6))")
+        vprintln(VERBOSITY_VERBOSE, "Epoch $epoch: Loss = $(round(avg_loss, digits=6))")
     end
     
     # Print summary
-    println("=" ^ 60)
-    println("Code processor training complete!")
-    println("Final loss: $(round(loss_history[end], digits=6))")
-    println("=" ^ 60)
+    vprintln(VERBOSITY_QUIET, "=" ^ 60)
+    vprintln(VERBOSITY_QUIET, "Code processor training complete!")
+    vprintln(VERBOSITY_QUIET, "Final loss: $(round(loss_history[end], digits=6))")
+    vprintln(VERBOSITY_QUIET, "=" ^ 60)
     
     return processor, loss_history
 end

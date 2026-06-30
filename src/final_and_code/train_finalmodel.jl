@@ -36,7 +36,7 @@ function train_final_model(raw_data, create_model::Function;
     
     # Skip training if max_epochs=0
     if max_epochs == 0
-        println("⚠️  max_epochs=0; return only the dataloaders for final model training.")
+        vprintln(VERBOSITY_NORMAL, "⚠️  max_epochs=0; return only the dataloaders for final model training.")
         return nothing, nothing, nothing, dl_train, dl_test, setup.split_indices
     end
 
@@ -52,7 +52,7 @@ Train final model from saved config (e.g., best trial from tuning).
 `(model, stats, train_stats, dl_train, dl_test)`
 """
 function train_final_model_from_config(raw_data, create_model::Function, config::TrainingConfig, trc; max_epochs=50, patience=10, print_every=100, model_kwargs...)
-    println("🎯 Training from config (seed=$(config.seed))...")
+    vprintln(VERBOSITY_NORMAL, "🎯 Training from config (seed=$(config.seed))...")
 
     loss_spec = trc.loss_spec;
     seed = trc.seed;

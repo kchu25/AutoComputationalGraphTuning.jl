@@ -23,6 +23,26 @@ You need a `create_model` function that:
 - Returns a Flux model
 - Must define a `linear_sum` property
 
+## Controlling Output Verbosity
+
+By default the package prints only **results, warnings, and errors** (`:quiet`).
+Bump the level up for progress detail, or silence it entirely:
+
+```julia
+set_verbosity!(:quiet)    # default: results, warnings, errors only
+set_verbosity!(:normal)   # + milestones (training start, trials, new-best, early stop)
+set_verbosity!(:verbose)  # + per-epoch summaries and threshold-search progress
+set_verbosity!(:debug)    # + per-batch loss
+set_verbosity!(:silent)   # nothing at all
+
+set_verbosity!(2)         # integers 0..4 also accepted
+get_verbosity()           # query the current level
+```
+
+The setting is global and applies to every routine (tuning, training, processor
+training, threshold search). It does not change any function signatures, so
+existing code keeps working unchanged.
+
 ## Loss Function Configuration
 
 Want to use a different loss function? No problem! You can configure any Flux loss function with custom aggregation:

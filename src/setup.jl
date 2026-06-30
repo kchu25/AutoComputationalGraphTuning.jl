@@ -40,9 +40,8 @@ function setup_training(data, create_model, batch_size; combine_train_val=false,
             isnothing(m) && return nothing
             (m, Flux.setup(Flux.AdaBelief(), m), Ydim)
         catch e
-            println("⚠️  Failed to create model: $e")
-            println(stacktrace(catch_backtrace()))
-            println("⚠️  Failed to create model")
+            vprintln(VERBOSITY_QUIET, "⚠️  Failed to create model: $e")
+            vprintln(VERBOSITY_DEBUG, stacktrace(catch_backtrace()))
             return nothing
         end
     else

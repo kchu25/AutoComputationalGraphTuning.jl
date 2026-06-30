@@ -8,7 +8,7 @@ function set_reproducible_seeds!(seed::Int = 42)
         CUDA.seed!(seed)
     end
     
-    println("🌱 Random seeds set to $seed for reproducibility")
+    vprintln(VERBOSITY_NORMAL, "🌱 Random seeds set to $seed for reproducibility")
     return Random.GLOBAL_RNG
 end
 

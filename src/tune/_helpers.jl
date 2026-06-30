@@ -9,12 +9,12 @@ function _save_if_best!(df, file, r2, best_r2)
     if r2 > best_r2
         try
             CSV.write(file, sort(df, :best_r2; rev=true))
-            println("  🎉 NEW BEST R² = $(round(r2, digits=4))!")
+            vprintln(VERBOSITY_NORMAL, "  🎉 NEW BEST R² = $(round(r2, digits=4))!")
         catch e
-            println("  ⚠️  Save failed: $e")
+            vprintln(VERBOSITY_QUIET, "  ⚠️  Save failed: $e")
         end
     else
-        println("  📊 R² = $(round(r2, digits=4)) (best: $(round(best_r2, digits=4)))")
+        vprintln(VERBOSITY_NORMAL, "  📊 R² = $(round(r2, digits=4)) (best: $(round(best_r2, digits=4)))")
     end
 end
 
@@ -27,7 +27,7 @@ function _run_trial(trial, raw_data, create_model, randomize_batchsize,
                     normalize_Y, normalization_method, normalization_mode,
                     use_cuda, loss_spec, max_epochs, patience, print_every, model_kwargs)
     
-    println("🔍 Trial $trial (seed: $trial)")
+    vprintln(VERBOSITY_NORMAL, "🔍 Trial $trial (seed: $trial)")
     
     rng = set_reproducible_seeds!(trial)
     batch_size = randomize_batchsize ? rand(rng, BATCH_SIZE_RANGE) : DEFAULT_BATCH_SIZE
@@ -37,7 +37,7 @@ function _run_trial(trial, raw_data, create_model, randomize_batchsize,
                           rng, use_cuda, loss_spec, model_kwargs...)
     
     if isnothing(setup)
-        println("  ❌ Invalid setup, skipping...")
+        vprintln(VERBOSITY_NORMAL, "  ❌ Invalid setup, skipping...")
         return nothing
     end
     
@@ -88,12 +88,12 @@ end
 function _print_summary(results, save_file, best_model, best_seed, best_r2, best_batch)
     if nrow(results) > 0
         sort!(results, :best_r2; rev=true)
-        println("\n📈 Tuning complete! Results:\n", results)
+        vprintln(VERBOSITY_QUIET, "\n📈 Tuning complete! Results:\n", results)
         !isnothing(save_file) && CSV.write(save_file, results)
     end
     
     if !isnothing(best_model)
-        println("\n🏆 Best: seed=$best_seed, R²=$(round(best_r2, digits=4)), batch=$best_batch")
+        vprintln(VERBOSITY_QUIET, "\n🏆 Best: seed=$best_seed, R²=$(round(best_r2, digits=4)), batch=$best_batch")
         return (seed=best_seed, r2=best_r2, batch_size=best_batch)
     end
     return nothing

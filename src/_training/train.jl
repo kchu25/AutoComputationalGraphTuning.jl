@@ -51,7 +51,7 @@ function train_epoch!(model, opt_state, dataloader, epoch, print_every; compute_
         if batch_idx % print_every == 0
             avg_loss = StatsBase.mean(epoch_losses)
             valid_info = haskey(aux, :valid_count) ? ", Valid: $(aux[:valid_count])" : ""
-            println("Epoch $epoch, Batch $batch_idx: Loss = $(round(loss, digits=6)), " * 
+            vprintln(VERBOSITY_DEBUG, "Epoch $epoch, Batch $batch_idx: Loss = $(round(loss, digits=6)), " *
                    "Avg = $(round(avg_loss, digits=6))$valid_info")
         end
     end
@@ -127,10 +127,10 @@ function train_model(model, opt_state, train_dl, val_dl, output_dim;
     val_losses = DEFAULT_FLOAT_TYPE[]
     val_r2_scores = DEFAULT_FLOAT_TYPE[]
     
-    println("Starting training for up to $max_epochs epochs...")
-    println("Early stopping: patience=$patience, min_delta=$min_delta")
-    println("Batch size: $(train_dl.batchsize), Total batches per epoch: $(length(train_dl))")
-    println("-" ^ 50)
+    vprintln(VERBOSITY_NORMAL, "Starting training for up to $max_epochs epochs...")
+    vprintln(VERBOSITY_NORMAL, "Early stopping: patience=$patience, min_delta=$min_delta")
+    vprintln(VERBOSITY_NORMAL, "Batch size: $(train_dl.batchsize), Total batches per epoch: $(length(train_dl))")
+    vprintln(VERBOSITY_NORMAL, "-" ^ 50)
     
     for epoch in 1:max_epochs
         # Train one epoch
@@ -159,8 +159,8 @@ function train_model(model, opt_state, train_dl, val_dl, output_dim;
                                   best_model_state, model, min_delta, patience, 
                                   aggregated_r2, best_r2)
         model.training[] = true   # Back to training mode
-        
-        println("-" ^ 50)
+
+        vprintln(VERBOSITY_VERBOSE, "-" ^ 50)
         
         should_stop && break
     end

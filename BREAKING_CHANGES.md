@@ -1,5 +1,19 @@
 # Breaking Changes
 
+## Verbosity Default (Behavior Change)
+
+Console output now defaults to `:quiet` — only **results, warnings, and errors**
+are printed. The previous behavior (per-epoch summaries, etc.) is still available
+by raising the level:
+
+```julia
+set_verbosity!(:verbose)  # restores per-epoch output
+set_verbosity!(:debug)    # also restores per-batch loss
+```
+
+No function signatures changed; existing code runs unchanged, it just prints
+less by default. See the "Controlling Output Verbosity" section in the README.
+
 ## v0.2.0 Changes
 
 ### Loss Function Naming (Clarity Update)

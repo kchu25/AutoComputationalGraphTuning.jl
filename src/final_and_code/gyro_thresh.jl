@@ -65,7 +65,7 @@ function find_optimal_threshold(model, processor, dataloader_train, dataloader_t
                                predict_position::Int=1) where T<:AbstractFloat
     
     # First, collect proc_gyro·code products from training set to determine threshold range
-    println("\n=== Collecting proc_gyro·code product statistics from training set ===")
+    vprintln(VERBOSITY_VERBOSE, "\n=== Collecting proc_gyro·code product statistics from training set ===")
     all_proc_gyro_code_products = T[]
     
     for (seq, _) in dataloader_train
@@ -95,15 +95,15 @@ function find_optimal_threshold(model, processor, dataloader_train, dataloader_t
                                            log10(max_thresh), 
                                            length=num_candidates)))
     
-    println("Threshold range: $(minimum(threshold_candidates)) to $(maximum(threshold_candidates))")
+    vprintln(VERBOSITY_VERBOSE, "Threshold range: $(minimum(threshold_candidates)) to $(maximum(threshold_candidates))")
     
     # Minimum acceptable R² on test set
     min_acceptable_r2 = baseline_stats.r2_processor * (T(1) - T(r2_tolerance))
-    println("Baseline R² (processor): $(round(baseline_stats.r2_processor, digits=4))")
-    println("Minimum acceptable R² (test): $(round(min_acceptable_r2, digits=4))")
-    
+    vprintln(VERBOSITY_VERBOSE, "Baseline R² (processor): $(round(baseline_stats.r2_processor, digits=4))")
+    vprintln(VERBOSITY_VERBOSE, "Minimum acceptable R² (test): $(round(min_acceptable_r2, digits=4))")
+
     # Test each threshold on test set
-    println("\n=== Testing thresholds on test set ===")
+    vprintln(VERBOSITY_VERBOSE, "\n=== Testing thresholds on test set ===")
     best_threshold = T(0)
     best_stats = nothing
     
@@ -111,7 +111,7 @@ function find_optimal_threshold(model, processor, dataloader_train, dataloader_t
         # Evaluate on test set with this threshold
         stats = _evaluate_with_threshold(model, processor, dataloader_test, thresh, predict_position)
         
-        println("Threshold: $(round(thresh, sigdigits=3)) -> " *
+        vprintln(VERBOSITY_VERBOSE, "Threshold: $(round(thresh, sigdigits=3)) -> " *
                 "R² orig (gyro-code): $(round(stats.r2_original, digits=4)), " *
                 "R² proc: $(round(stats.r2_processor, digits=4)), " *
                 "R² proc vs label: $(round(stats.r2_processor_vs_label, digits=4)), " *
@@ -130,24 +130,24 @@ function find_optimal_threshold(model, processor, dataloader_train, dataloader_t
                                               minimum(threshold_candidates), predict_position)
     end
     
-    println("\n=== Optimal Threshold Found ===")
-    println("Threshold: $(round(best_stats.threshold, sigdigits=4))")
-    println("R² (original): $(round(best_stats.r2_original, digits=4))")
-    println("R² (processor with threshold): $(round(best_stats.r2_processor, digits=4))")
-    println("R² (processor vs actual label): $(round(best_stats.r2_processor_vs_label, digits=4))")
-    println("Sparsity after thresholding: $(round(best_stats.sparsity_pct, digits=1))% of components zeroed out")
-    println("Baseline sparsity (no threshold):")
-    println("  Original (gyro·code): $(round(best_stats.baseline_gyro_sparsity, digits=1))%")
-    println("  Processor: $(round(best_stats.baseline_proc_sparsity, digits=1))%")
-    println("Sparsity improvement: $(round(best_stats.sparsity_pct - best_stats.baseline_proc_sparsity, digits=1))% additional sparsity gained")
-    println("Non-zero components per sample:")
-    println("  Mean: $(round(best_stats.avg_nonzero_per_sample, digits=1))")
-    println("  Std:  $(round(best_stats.std_nonzero_per_sample, digits=1))")
-    println("  Min:  $(best_stats.min_nonzero_per_sample)")
-    println("  Max:  $(best_stats.max_nonzero_per_sample)")
-    
+    vprintln(VERBOSITY_QUIET, "\n=== Optimal Threshold Found ===")
+    vprintln(VERBOSITY_QUIET, "Threshold: $(round(best_stats.threshold, sigdigits=4))")
+    vprintln(VERBOSITY_QUIET, "R² (original): $(round(best_stats.r2_original, digits=4))")
+    vprintln(VERBOSITY_QUIET, "R² (processor with threshold): $(round(best_stats.r2_processor, digits=4))")
+    vprintln(VERBOSITY_QUIET, "R² (processor vs actual label): $(round(best_stats.r2_processor_vs_label, digits=4))")
+    vprintln(VERBOSITY_QUIET, "Sparsity after thresholding: $(round(best_stats.sparsity_pct, digits=1))% of components zeroed out")
+    vprintln(VERBOSITY_QUIET, "Baseline sparsity (no threshold):")
+    vprintln(VERBOSITY_QUIET, "  Original (gyro·code): $(round(best_stats.baseline_gyro_sparsity, digits=1))%")
+    vprintln(VERBOSITY_QUIET, "  Processor: $(round(best_stats.baseline_proc_sparsity, digits=1))%")
+    vprintln(VERBOSITY_QUIET, "Sparsity improvement: $(round(best_stats.sparsity_pct - best_stats.baseline_proc_sparsity, digits=1))% additional sparsity gained")
+    vprintln(VERBOSITY_QUIET, "Non-zero components per sample:")
+    vprintln(VERBOSITY_QUIET, "  Mean: $(round(best_stats.avg_nonzero_per_sample, digits=1))")
+    vprintln(VERBOSITY_QUIET, "  Std:  $(round(best_stats.std_nonzero_per_sample, digits=1))")
+    vprintln(VERBOSITY_QUIET, "  Min:  $(best_stats.min_nonzero_per_sample)")
+    vprintln(VERBOSITY_QUIET, "  Max:  $(best_stats.max_nonzero_per_sample)")
+
     r2_change_pct = T(100)*(best_stats.r2_processor - baseline_stats.r2_processor)/baseline_stats.r2_processor
-    println("R² change from baseline: $(r2_change_pct > 0 ? "+" : "")$(round(r2_change_pct, digits=2))%")
+    vprintln(VERBOSITY_QUIET, "R² change from baseline: $(r2_change_pct > 0 ? "+" : "")$(round(r2_change_pct, digits=2))%")
     
     return best_stats
 end

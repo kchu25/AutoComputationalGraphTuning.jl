@@ -19,6 +19,9 @@ const FLUX_MODEL_FLOAT_FCN = Flux.f32 # just to ensure that it matches DEFAULT_F
 const DEFAULT_BATCH_SIZE = 128  # Default batch size if not specified
 const BATCH_SIZE_RANGE = 32:16:256  # Possible batch sizes for random selection
 
+# Global verbosity control (must come first; used throughout the package).
+include("verbosity.jl")
+
 # Subroutine for splitting the data into train/val/test sets.
 include("_data_splitting/structs.jl")
 include("_data_splitting/indexing.jl")
@@ -40,6 +43,7 @@ include("final_and_code/train_code_processor.jl")
 include("final_and_code/code_processor_eval.jl")
 include("final_and_code/gyro_thresh.jl")
 
+export set_verbosity!, get_verbosity  # Control console output verbosity (default: :quiet)
 export setup_model_and_training
 export TrainingConfig, save_trial_config, load_trial_config, load_best_trial_config
 export compile_loss, create_masked_loss_function  # create_masked_loss_function is a backward compat alias

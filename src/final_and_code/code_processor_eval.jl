@@ -115,12 +115,12 @@ function evaluate_processor(model, processor, dataloader, set_name::String;
     r2_proc_vs_labels = _compute_r2(labels_all, proc_prods_predictions)
     
     # Print results
-    println("\n=== $set_name Set ===")
-    println("R² scores:")
-    println("  Original (gyro·code): $(round(r2_orig, digits=4))")
-    println("  Processor: $(round(r2_proc, digits=4))")
-    println("  Model vs Labels: $(round(r2_model_vs_labels, digits=4))")
-    println("  Processor vs Labels: $(round(r2_proc_vs_labels, digits=4))")
+    vprintln(VERBOSITY_QUIET, "\n=== $set_name Set ===")
+    vprintln(VERBOSITY_QUIET, "R² scores:")
+    vprintln(VERBOSITY_QUIET, "  Original (gyro·code): $(round(r2_orig, digits=4))")
+    vprintln(VERBOSITY_QUIET, "  Processor: $(round(r2_proc, digits=4))")
+    vprintln(VERBOSITY_QUIET, "  Model vs Labels: $(round(r2_model_vs_labels, digits=4))")
+    vprintln(VERBOSITY_QUIET, "  Processor vs Labels: $(round(r2_proc_vs_labels, digits=4))")
     
     return ProcessorEvalStats(r2_orig, r2_proc), pts
 end
