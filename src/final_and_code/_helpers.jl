@@ -41,7 +41,7 @@ end
 
 """Train final model and load best weights. Returns: (trained_model, stats)"""
 function _train_final_model!(setup, dl_train, dl_test; max_epochs=50, patience=10, print_every=100)
-    print_phase_banner(VERBOSITY_QUIET, "🎯 FINAL MODEL TRAINING (train+val combined)")
+    print_phase_banner(VERBOSITY_QUIET, "🎯  FINAL MODEL TRAINING (train+val combined)")
     best_state, stats = train_model(setup.model, setup.opt_state, dl_train, dl_test, setup.Ydim;
                                     max_epochs, patience, print_every, test_set=true, compiled_loss=setup.compiled_loss)
     

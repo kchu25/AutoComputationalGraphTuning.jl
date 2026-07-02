@@ -80,18 +80,24 @@ function vprint(level::Integer, args...)
     nothing
 end
 
+# Continuous horizontal rule (U+2500). A run of these renders as one unbroken
+# line, unlike the gappy ASCII hyphen. Used for banners and section dividers.
+hrule(width::Integer=60) = "─" ^ width
+
 """
     print_phase_banner(level, title; width=60)
 
-Print a centered, full-width banner bounded by long-dash rules announcing a
-high-level phase (e.g. tuning, final training, code-processor training).
-Gated by `level` exactly like [`vprintln`](@ref); defaults to a banner width
-of `width` characters and is preceded by a blank line so it stands out.
+Print a centered, full-width banner bounded by continuous horizontal rules
+(see [`hrule`](@ref)) announcing a high-level phase (e.g. tuning, final
+training, code-processor training). Gated by `level` exactly like
+[`vprintln`](@ref); the banner is `width` columns wide and is preceded by a
+blank line so it stands out. Centering uses `textwidth`, so titles containing
+double-width glyphs (emoji) still land in the middle.
 """
 function print_phase_banner(level::Integer, title::AbstractString; width::Integer=60)
     _should_log(level) || return nothing
-    rule = "-" ^ width
-    pad = max(0, (width - length(title)) ÷ 2)
+    rule = hrule(width)
+    pad = max(0, (width - textwidth(title)) ÷ 2)
     println()
     println(rule)
     println(" " ^ pad, title)

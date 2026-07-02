@@ -132,7 +132,7 @@ function train_model(model, opt_state, train_dl, val_dl, output_dim;
         vprintln(VERBOSITY_NORMAL, "Starting training for up to $max_epochs epochs...")
         vprintln(VERBOSITY_NORMAL, "Early stopping: patience=$patience, min_delta=$min_delta")
         vprintln(VERBOSITY_NORMAL, "Batch size: $(train_dl.batchsize), Total batches per epoch: $(length(train_dl))")
-        vprintln(VERBOSITY_NORMAL, "-" ^ 50)
+        vprintln(VERBOSITY_NORMAL, hrule(50))
     end
     
     for epoch in 1:max_epochs
@@ -163,7 +163,7 @@ function train_model(model, opt_state, train_dl, val_dl, output_dim;
                                   aggregated_r2, best_r2)
         model.training[] = true   # Back to training mode
 
-        vprintln(VERBOSITY_VERBOSE, "-" ^ 50)
+        vprintln(VERBOSITY_VERBOSE, hrule(50))
         
         should_stop && break
     end
