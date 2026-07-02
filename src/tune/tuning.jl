@@ -15,6 +15,8 @@ function tune_hyperparameters(raw_data, create_model::Function;
                               print_every=100, save_folder=nothing, use_cuda=true,
                               loss_spec=(loss=Flux.mse, agg=StatsBase.mean), model_kwargs...)
     
+    print_phase_banner(VERBOSITY_QUIET, "🔍 HYPERPARAMETER TUNING — $n_trials trials")
+
     results = DataFrame(seed=Int[], best_r2=DEFAULT_FLOAT_TYPE[], val_loss=DEFAULT_FLOAT_TYPE[], num_params=Int[])
     best_r2, best_model, best_seed, best_batch = -Inf, nothing, nothing, nothing
     save_file = isnothing(save_folder) ? nothing : _setup_save_file(save_folder)

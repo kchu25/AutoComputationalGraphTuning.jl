@@ -105,7 +105,8 @@ train_model(model, opt, train_dl, val_dl, ydim; compiled_loss=my_compiled_loss)
 """
 function train_model(model, opt_state, train_dl, val_dl, output_dim;
                      max_epochs=50, patience=10, min_delta=1e-4, print_every=100,
-                     test_set=false, compute_loss=nothing, compiled_loss=masked_mse)
+                     test_set=false, compute_loss=nothing, compiled_loss=masked_mse,
+                     show_header=true)
     
     # Build compute_loss from compiled_loss if not provided directly
     if isnothing(compute_loss) && !isnothing(compiled_loss)
@@ -127,10 +128,12 @@ function train_model(model, opt_state, train_dl, val_dl, output_dim;
     val_losses = DEFAULT_FLOAT_TYPE[]
     val_r2_scores = DEFAULT_FLOAT_TYPE[]
     
-    vprintln(VERBOSITY_NORMAL, "Starting training for up to $max_epochs epochs...")
-    vprintln(VERBOSITY_NORMAL, "Early stopping: patience=$patience, min_delta=$min_delta")
-    vprintln(VERBOSITY_NORMAL, "Batch size: $(train_dl.batchsize), Total batches per epoch: $(length(train_dl))")
-    vprintln(VERBOSITY_NORMAL, "-" ^ 50)
+    if show_header
+        vprintln(VERBOSITY_NORMAL, "Starting training for up to $max_epochs epochs...")
+        vprintln(VERBOSITY_NORMAL, "Early stopping: patience=$patience, min_delta=$min_delta")
+        vprintln(VERBOSITY_NORMAL, "Batch size: $(train_dl.batchsize), Total batches per epoch: $(length(train_dl))")
+        vprintln(VERBOSITY_NORMAL, "-" ^ 50)
+    end
     
     for epoch in 1:max_epochs
         # Train one epoch

@@ -79,3 +79,22 @@ function vprint(level::Integer, args...)
     _should_log(level) && print(args...)
     nothing
 end
+
+"""
+    print_phase_banner(level, title; width=60)
+
+Print a centered, full-width banner bounded by long-dash rules announcing a
+high-level phase (e.g. tuning, final training, code-processor training).
+Gated by `level` exactly like [`vprintln`](@ref); defaults to a banner width
+of `width` characters and is preceded by a blank line so it stands out.
+"""
+function print_phase_banner(level::Integer, title::AbstractString; width::Integer=60)
+    _should_log(level) || return nothing
+    rule = "-" ^ width
+    pad = max(0, (width - length(title)) ÷ 2)
+    println()
+    println(rule)
+    println(" " ^ pad, title)
+    println(rule)
+    nothing
+end

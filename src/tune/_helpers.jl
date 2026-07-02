@@ -45,7 +45,8 @@ function _run_trial(trial, raw_data, create_model, randomize_batchsize,
                                                rng=MersenneTwister(rand(Random.GLOBAL_RNG, 1:typemax(Int))))
     
     model_state, stats = train_model(setup.model, setup.opt_state, dl_train, dl_val, setup.Ydim;
-                                     max_epochs, patience, print_every, compiled_loss=setup.compiled_loss)
+                                     max_epochs, patience, print_every, compiled_loss=setup.compiled_loss,
+                                     show_header=false)
     
     r2, loss = stats[:best_r2], stats[:best_val_loss]
     num_params = sum(length, Flux.trainables(setup.model))
