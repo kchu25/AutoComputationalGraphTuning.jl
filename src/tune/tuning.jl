@@ -12,6 +12,7 @@ function tune_hyperparameters(raw_data, create_model::Function;
                               randomize_batchsize=true, max_epochs=50, patience=5,
                               trial_number_start=1, n_trials=100,
                               normalize_Y=true, normalization_method=:zscore, normalization_mode=:rowwise,
+                              wt_reference=nothing,
                               print_every=100, save_folder=nothing, use_cuda=true,
                               loss_spec=(loss=Flux.mse, agg=StatsBase.mean), model_kwargs...)
     
@@ -24,7 +25,7 @@ function tune_hyperparameters(raw_data, create_model::Function;
     for trial in trial_number_start:(trial_number_start+n_trials-1)
         # Run trial
         result = _run_trial(trial, raw_data, create_model, randomize_batchsize,
-                           normalize_Y, normalization_method, normalization_mode,
+                           normalize_Y, normalization_method, normalization_mode, wt_reference,
                            use_cuda, loss_spec, max_epochs, patience, print_every, model_kwargs)
         
         isnothing(result) && continue

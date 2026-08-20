@@ -24,7 +24,7 @@ Run a single hyperparameter tuning trial.
 # Returns: (r2, val_loss, num_params, model_state, model, batch_size)
 """
 function _run_trial(trial, raw_data, create_model, randomize_batchsize, 
-                    normalize_Y, normalization_method, normalization_mode,
+                    normalize_Y, normalization_method, normalization_mode, wt_reference,
                     use_cuda, loss_spec, max_epochs, patience, print_every, model_kwargs)
     
     vprintln(VERBOSITY_NORMAL, "🔍 Trial $trial (seed: $trial)")
@@ -33,7 +33,7 @@ function _run_trial(trial, raw_data, create_model, randomize_batchsize,
     batch_size = randomize_batchsize ? rand(rng, BATCH_SIZE_RANGE) : DEFAULT_BATCH_SIZE
     
     setup = setup_training(raw_data, create_model, batch_size;
-                          normalize_Y, normalization_method, normalization_mode, 
+                          normalize_Y, normalization_method, normalization_mode, wt_reference,
                           rng, use_cuda, loss_spec, model_kwargs...)
     
     if isnothing(setup)

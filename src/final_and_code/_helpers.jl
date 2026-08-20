@@ -4,14 +4,14 @@
 function _prepare_final_model_setup(raw_data, create_model::Function;
                                     seed=1, randomize_batchsize=true,
                                     normalize_Y=true, normalization_method=:zscore,
-                                    normalization_mode=:rowwise, use_cuda=true,
+                                    normalization_mode=:rowwise, wt_reference=nothing, use_cuda=true,
                                     loss_spec=(loss=Flux.mse, agg=StatsBase.mean),
                                     model_kwargs...)
     rng = set_reproducible_seeds!(seed)
     batch_size = randomize_batchsize ? rand(rng, BATCH_SIZE_RANGE) : DEFAULT_BATCH_SIZE
     
     setup = setup_training(raw_data, create_model, batch_size; combine_train_val=true,
-                          normalize_Y, normalization_method, normalization_mode, rng, 
+                          normalize_Y, normalization_method, normalization_mode, wt_reference, rng, 
                           use_cuda, loss_spec, model_kwargs...)
     isnothing(setup) && error("Invalid hyperparameters for final model training")
     

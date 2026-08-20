@@ -24,6 +24,7 @@ function train_final_model(raw_data, create_model::Function;
                           seed=1, max_epochs=50, patience=10, print_every=100,
                           randomize_batchsize=true, normalize_Y=true,
                           normalization_method=:zscore, normalization_mode=:rowwise,
+                          wt_reference=nothing,
                           use_cuda=true, 
                           loss_spec=(loss=Flux.mse, agg=StatsBase.mean),
                           model_kwargs...)
@@ -31,7 +32,7 @@ function train_final_model(raw_data, create_model::Function;
     # Setup and create dataloaders
     setup, batch_size = _prepare_final_model_setup(raw_data, create_model; seed, randomize_batchsize,
                                                     normalize_Y, normalization_method, normalization_mode,
-                                                    use_cuda, loss_spec, model_kwargs...)
+                                                    wt_reference, use_cuda, loss_spec, model_kwargs...)
     dl_train, dl_test = _create_final_dataloaders(setup, batch_size, seed)
     
     # Skip training if max_epochs=0
@@ -57,6 +58,8 @@ function train_final_model_from_config(raw_data, create_model::Function, config:
     loss_spec = trc.loss_spec;
     seed = trc.seed;
     normalization_method = trc.normalization_method;
+    # hasproperty guard: older trc objects predate this field
+    wt_reference = hasproperty(trc, :wt_reference) ? trc.wt_reference : nothing;
 
     train_final_model(raw_data, create_model; 
         seed=seed, max_epochs, patience, print_every,
@@ -64,6 +67,7 @@ function train_final_model_from_config(raw_data, create_model::Function, config:
         normalize_Y=config.normalize_Y,
         normalization_method=normalization_method, 
         normalization_mode=config.normalization_mode,
+        wt_reference=wt_reference,
         use_cuda=config.use_cuda, loss_spec=loss_spec, 
         model_kwargs...)
 end
